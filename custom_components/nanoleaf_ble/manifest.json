@@ -1,0 +1,23 @@
+{
+  "domain": "nanoleaf_ble",
+  "name": "Nanoleaf Essentials (Bluetooth)",
+  "bluetooth": [
+    {
+      "manufacturer_id": 2059,
+      "connectable": true
+    }
+  ],
+  "codeowners": [
+    "@jorgediez"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "bluetooth_adapters"
+  ],
+  "documentation": "https://github.com/jorgediez/ha-nanoleaf-ble",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/jorgediez/ha-nanoleaf-ble/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

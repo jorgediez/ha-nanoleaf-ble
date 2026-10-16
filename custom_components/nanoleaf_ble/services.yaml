@@ -1,0 +1,174 @@
+create_scene:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light
+  fields:
+    name:
+      required: true
+      selector:
+        text:
+    effect:
+      required: true
+      selector:
+        select:
+          translation_key: effect
+          options: [fade, random, highlight, flow, stripes]
+    colours:
+      required: true
+      example: "[[255, 0, 0], [0, 0, 255]]"
+      selector:
+        object:
+    speed: &speed
+      selector:
+        number:
+          min: 1
+          max: 255
+          unit_of_measurement: "0.1 s"
+    delay: &delay
+      selector:
+        number:
+          min: 0
+          max: 255
+          unit_of_measurement: "0.1 s"
+    loop: &loop
+      selector:
+        boolean:
+    direction: &direction
+      selector:
+        select:
+          translation_key: direction
+          options: [left, right, up, down]
+    segment: &segment
+      selector:
+        number:
+          min: 1
+          max: 255
+    main_colour_probability: &probability
+      selector:
+        number:
+          min: 0
+          max: 100
+          unit_of_measurement: "%"
+    add_to_strip:
+      default: false
+      selector:
+        boolean:
+    play:
+      default: false
+      selector:
+        boolean:
+
+preview_scene:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light
+  fields:
+    effect:
+      required: true
+      selector:
+        select:
+          translation_key: effect
+          options: [fade, random, highlight, flow, stripes]
+    colours:
+      required: true
+      example: "[[255, 0, 0], [0, 0, 255]]"
+      selector:
+        object:
+    speed: *speed
+    delay: *delay
+    loop: *loop
+    direction: *direction
+    segment: *segment
+    main_colour_probability: *probability
+
+add_scene_to_strip:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light
+  fields:
+    scene:
+      required: true
+      selector:
+        text:
+
+remove_scene_from_strip:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light
+  fields:
+    scene:
+      required: true
+      selector:
+        text:
+
+rename_scene:
+  fields:
+    scene:
+      required: true
+      selector:
+        text:
+    new_name:
+      required: true
+      selector:
+        text:
+
+delete_library_scene:
+  fields:
+    scene:
+      required: true
+      selector:
+        text:
+
+search_community_scenes:
+  fields:
+    query:
+      selector:
+        text:
+    featured:
+      default: false
+      selector:
+        boolean:
+    sort:
+      selector:
+        select:
+          translation_key: sort
+          options: [recent, top]
+
+preview_community_scene:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light
+  fields:
+    key:
+      required: true
+      selector:
+        text:
+
+save_community_scene:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light
+  fields:
+    key:
+      required: true
+      selector:
+        text:
+    name:
+      selector:
+        text:
+    add_to_strip:
+      default: false
+      selector:
+        boolean:
+
+restore_default_scenes:
+  target:
+    entity:
+      integration: nanoleaf_ble
+      domain: light

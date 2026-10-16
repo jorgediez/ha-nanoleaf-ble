@@ -1,0 +1,325 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "Choose a strip",
+        "description": "Strips Home Assistant has heard over Bluetooth, through a local adapter or an ESPHome Bluetooth proxy.",
+        "data": {
+          "address": "Strip"
+        }
+      },
+      "pair": {
+        "title": "Pair with {name}",
+        "description": "Enter the 8-digit setup code printed on the strip or its box (the code by the QR code, e.g. 123-45-678). Pairing does not disturb the Nanoleaf app.\n\nFirmware {firmware}. Firmware 5.0.0 and later is supported experimentally: on/off, brightness and colour only.",
+        "data": {
+          "setup_code": "Setup code"
+        },
+        "data_description": {
+          "setup_code": "Dashes are optional."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced: use an existing auth token",
+            "description": "For a strip already paired with another tool. Leave the setup code empty.",
+            "data": {
+              "token": "Auth token",
+              "client_id": "Client ID"
+            },
+            "data_description": {
+              "token": "Hexadecimal, as printed by scripts/nanoleaf_cli.py pair.",
+              "client_id": "Firmware 5.0.0 and later only."
+            }
+          }
+        }
+      },
+      "reauth_confirm": {
+        "title": "Pair {name} again",
+        "description": "The strip no longer accepts the stored auth token; it was probably factory-reset. Enter its setup code to pair again.",
+        "data": {
+          "setup_code": "Setup code"
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced: use an existing auth token",
+            "data": {
+              "token": "Auth token",
+              "client_id": "Client ID"
+            }
+          }
+        }
+      },
+      "reconfigure": {
+        "title": "Change the credentials of {name}",
+        "description": "Pair again with the setup code, or switch to another auth token.",
+        "data": {
+          "setup_code": "Setup code"
+        },
+        "sections": {
+          "advanced": {
+            "name": "Advanced: use an existing auth token",
+            "data": {
+              "token": "Auth token",
+              "client_id": "Client ID"
+            }
+          }
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the strip. Check it is powered and in range of an adapter or proxy with a free connection slot, then try again.",
+      "invalid_auth": "The strip refused the setup code.",
+      "invalid_token": "The strip refused the auth token.",
+      "invalid_setup_code": "The setup code has 8 digits.",
+      "code_required": "Enter the setup code, or an auth token under Advanced.",
+      "invalid_token_format": "The auth token must be hexadecimal.",
+      "client_id_required": "Firmware 5.0.0 and later needs the client ID that goes with the token.",
+      "too_many_pairings": "The strip accepts no more controllers. Only a factory reset frees its pairings.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This strip is already configured.",
+      "already_in_progress": "This strip is already being set up.",
+      "no_devices_found": "No supported strips heard over Bluetooth. Check the strip is powered and in range of an adapter or ESPHome Bluetooth proxy.",
+      "not_supported": "This Nanoleaf device is not supported (yet). Supported: Essentials Lightstrip (NL55, NL68), Essentials A19 (NL45) and Secretlab MAGRGB (NL62).",
+      "reauth_successful": "Paired again.",
+      "reconfigure_successful": "Credentials updated.",
+      "wrong_device": "That is a different strip."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "data": {
+          "poll_interval": "Poll interval"
+        },
+        "data_description": {
+          "poll_interval": "How often to read the strip. It reports nothing by itself, so changes made in the Nanoleaf app show up within this time. Commands from Home Assistant are immediate either way."
+        }
+      }
+    }
+  },
+  "entity": {
+    "button": {
+      "restore_default_scenes": { "name": "Restore default scenes" },
+      "community_preview": { "name": "Preview community scene" },
+      "community_save": { "name": "Save community scene to library" },
+      "community_add_to_strip": { "name": "Add community scene to strip" },
+      "scene_add_to_strip": { "name": "Add scene to strip" },
+      "scene_remove_from_strip": { "name": "Remove scene from strip" },
+      "scene_delete_from_library": { "name": "Delete scene from library" }
+    },
+    "select": {
+      "community_scene": { "name": "Community scene" },
+      "scene": { "name": "Scene" }
+    },
+    "sensor": {
+      "free_scene_slots": { "name": "Free scene slots" },
+      "scenes_on_strip": { "name": "Scenes on strip" },
+      "firmware": { "name": "Firmware" },
+      "hardware_version": { "name": "Hardware version" },
+      "serial_number": { "name": "Serial number" },
+      "model": { "name": "Model" },
+      "protocol": { "name": "Protocol" },
+      "rssi": { "name": "Signal strength" }
+    },
+    "switch": {
+      "power_loss_recovery": { "name": "Restore after power loss" }
+    },
+    "text": {
+      "community_search": { "name": "Community search" }
+    }
+  },
+  "exceptions": {
+    "cannot_connect": {
+      "message": "Could not connect to the strip at {address}: {error}"
+    },
+    "auth_failed": {
+      "message": "{name} refused the stored auth token. Pair it again from the repair notification."
+    },
+    "update_failed": {
+      "message": "Could not read the strip at {address}: {error}"
+    },
+    "command_failed": {
+      "message": "{name} did not accept the command: {error}"
+    },
+    "not_supported": {
+      "message": "{name} does not support this: {error}"
+    },
+    "strip_full": {
+      "message": "{name} is full: it holds {max} scenes, built-in ones included. Remove a scene first."
+    },
+    "scenes_unsupported": {
+      "message": "Scenes are not supported on {name} yet: firmware 5.0.0 and later stores them differently."
+    },
+    "scene_not_found": {
+      "message": "No scene called \"{scene}\"."
+    },
+    "scene_not_on_strip": {
+      "message": "\"{scene}\" is not stored on this strip."
+    },
+    "scene_already_on_strip": {
+      "message": "\"{scene}\" is already stored on this strip."
+    },
+    "scene_not_in_library": {
+      "message": "\"{scene}\" is not in the scene library."
+    },
+    "scene_exists": {
+      "message": "The library already has a scene called \"{scene}\"."
+    },
+    "builtin_protected": {
+      "message": "\"{scene}\" is a factory scene. It cannot be put back once deleted, so it is never deleted."
+    },
+    "no_default_scenes": {
+      "message": "The Nanoleaf app writes no default scenes to {name}."
+    },
+    "invalid_scene": {
+      "message": "Invalid scene: {error}"
+    },
+    "community_failed": {
+      "message": "The Nanoleaf community library could not be reached: {error}"
+    },
+    "not_a_strip": {
+      "message": "{entity_id} is not a Nanoleaf Essentials (Bluetooth) light that is loaded."
+    },
+    "target_required": {
+      "message": "Choose the strip (its light entity) to do this on."
+    },
+    "no_strips_loaded": {
+      "message": "No Nanoleaf Essentials (Bluetooth) strip is loaded."
+    },
+    "no_community_scene_selected": {
+      "message": "Search the community first, then choose a scene in Community scene."
+    },
+    "no_scene_selected": {
+      "message": "Choose a scene in the Scene select first."
+    }
+  },
+  "issues": {
+    "experimental_firmware": {
+      "title": "{name}: firmware {firmware} support is experimental",
+      "description": "Firmware 5.0.0 and later speaks a newer protocol that has not been tested on a real strip yet. On/off, brightness, colour and identify should work; scenes and Restore after power loss are not available.\n\nPlease report how it goes, with diagnostics attached: https://github.com/jorgediez/ha-nanoleaf-ble/issues"
+    },
+    "default_scenes_incomplete": {
+      "title": "{name}: not every default scene fits",
+      "description": "After pairing, the Nanoleaf app writes its default scenes to the strip. The integration did the same, but the strip is full, so these were left out: {scenes}.\n\nNothing was deleted to make room. Remove a scene you don't need, then press Restore default scenes on the device page."
+    }
+  },
+  "services": {
+    "create_scene": {
+      "name": "Create scene",
+      "description": "Creates a scene in the scene library, shared by all strips. Optionally adds it to strips and plays it.",
+      "fields": {
+        "name": { "name": "Name", "description": "The scene's name, unique in the library." },
+        "effect": { "name": "Motion", "description": "How the colours move." },
+        "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] or {hue: 0-360, saturation: 0-100, brightness: 0-100, repeat: copies}." },
+        "speed": { "name": "Speed", "description": "Transition time in tenths of a second (1-255). Default 24." },
+        "delay": { "name": "Delay", "description": "Hold time in tenths of a second (0-255), for fade, random, highlight and flow. Default 0." },
+        "loop": { "name": "Loop", "description": "Repeat the sequence (fade and flow). Default on." },
+        "direction": { "name": "Direction", "description": "Flow and stripes only. Default left." },
+        "segment": { "name": "Segment", "description": "Stripe size (stripes only, 1-255). Default 50." },
+        "main_colour_probability": { "name": "Main colour probability", "description": "Highlight only: the chance (%) each new colour is the first one. Default 80." },
+        "add_to_strip": { "name": "Add to strip", "description": "Store it on the strips, taking a slot." },
+        "play": { "name": "Play", "description": "Play it on the strips now." }
+      }
+    },
+    "preview_scene": {
+      "name": "Preview scene",
+      "description": "Plays a scene without saving it anywhere.",
+      "fields": {
+        "effect": { "name": "Motion", "description": "How the colours move." },
+        "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] or {hue, saturation, brightness, repeat}." },
+        "speed": { "name": "Speed", "description": "Transition time in tenths of a second (1-255)." },
+        "delay": { "name": "Delay", "description": "Hold time in tenths of a second (0-255)." },
+        "loop": { "name": "Loop", "description": "Repeat the sequence (fade and flow)." },
+        "direction": { "name": "Direction", "description": "Flow and stripes only." },
+        "segment": { "name": "Segment", "description": "Stripe size (stripes only)." },
+        "main_colour_probability": { "name": "Main colour probability", "description": "Highlight only (0-100 %)." }
+      }
+    },
+    "add_scene_to_strip": {
+      "name": "Add scene to strip",
+      "description": "Stores a library scene on strips, so it plays from the Nanoleaf app too.",
+      "fields": {
+        "scene": { "name": "Scene", "description": "Name of the library scene." }
+      }
+    },
+    "remove_scene_from_strip": {
+      "name": "Remove scene from strip",
+      "description": "Deletes a scene from strips. A library copy stays in the library. Factory scenes are never deleted.",
+      "fields": {
+        "scene": { "name": "Scene", "description": "Name of the scene on the strip." }
+      }
+    },
+    "rename_scene": {
+      "name": "Rename scene",
+      "description": "Renames a library scene, and its copies on strips.",
+      "fields": {
+        "scene": { "name": "Scene", "description": "Current name." },
+        "new_name": { "name": "New name", "description": "New name, unique in the library." }
+      }
+    },
+    "delete_library_scene": {
+      "name": "Delete library scene",
+      "description": "Deletes a scene from the library. Copies stored on strips stay there.",
+      "fields": {
+        "scene": { "name": "Scene", "description": "Name of the library scene." }
+      }
+    },
+    "search_community_scenes": {
+      "name": "Search community scenes",
+      "description": "Searches the Nanoleaf community scene library and returns the results.",
+      "fields": {
+        "query": { "name": "Query", "description": "Words to search for. Empty lists recent scenes." },
+        "featured": { "name": "Featured only", "description": "Only scenes Nanoleaf features." },
+        "sort": { "name": "Sort", "description": "Most recent or most downloaded first." }
+      }
+    },
+    "preview_community_scene": {
+      "name": "Preview community scene",
+      "description": "Plays a community scene without saving it.",
+      "fields": {
+        "key": { "name": "Key", "description": "The key from a search result." }
+      }
+    },
+    "save_community_scene": {
+      "name": "Save community scene",
+      "description": "Saves a community scene to the library, keeping its name, and optionally stores it on strips.",
+      "fields": {
+        "key": { "name": "Key", "description": "The key from a search result." },
+        "name": { "name": "Name", "description": "A name of your own instead of the community one." },
+        "add_to_strip": { "name": "Add to strip", "description": "Also store it on the strips." }
+      }
+    },
+    "restore_default_scenes": {
+      "name": "Restore default scenes",
+      "description": "Writes back the default scenes the Nanoleaf app gives Secretlab strips, where missing and as space allows. Nothing is deleted."
+    }
+  },
+  "selector": {
+    "effect": {
+      "options": {
+        "fade": "Fade",
+        "random": "Random",
+        "highlight": "Highlight",
+        "flow": "Flow",
+        "stripes": "Stripes"
+      }
+    },
+    "direction": {
+      "options": {
+        "left": "Left",
+        "right": "Right",
+        "up": "Up",
+        "down": "Down"
+      }
+    },
+    "sort": {
+      "options": {
+        "recent": "Most recent",
+        "top": "Most downloaded"
+      }
+    }
+  }
+}

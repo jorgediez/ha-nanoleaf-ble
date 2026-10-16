@@ -1,0 +1,47 @@
+{
+  "entity": {
+    "button": {
+      "restore_default_scenes": { "default": "mdi:restore" },
+      "community_preview": { "default": "mdi:play-circle-outline" },
+      "community_save": { "default": "mdi:content-save-outline" },
+      "community_add_to_strip": { "default": "mdi:download" },
+      "scene_add_to_strip": { "default": "mdi:led-strip-variant" },
+      "scene_remove_from_strip": { "default": "mdi:led-strip-variant-off" },
+      "scene_delete_from_library": { "default": "mdi:delete-outline" }
+    },
+    "select": {
+      "community_scene": { "default": "mdi:earth" },
+      "scene": { "default": "mdi:palette" }
+    },
+    "sensor": {
+      "free_scene_slots": { "default": "mdi:tray-full" },
+      "scenes_on_strip": { "default": "mdi:palette-swatch-variant" },
+      "firmware": { "default": "mdi:package-up" },
+      "hardware_version": { "default": "mdi:chip" },
+      "serial_number": { "default": "mdi:identifier" },
+      "model": { "default": "mdi:tag-outline" },
+      "protocol": { "default": "mdi:bluetooth-settings" }
+    },
+    "switch": {
+      "power_loss_recovery": {
+        "default": "mdi:power-plug",
+        "state": { "off": "mdi:power-plug-off" }
+      }
+    },
+    "text": {
+      "community_search": { "default": "mdi:magnify" }
+    }
+  },
+  "services": {
+    "create_scene": { "service": "mdi:palette-outline" },
+    "preview_scene": { "service": "mdi:play-circle-outline" },
+    "add_scene_to_strip": { "service": "mdi:led-strip-variant" },
+    "remove_scene_from_strip": { "service": "mdi:led-strip-variant-off" },
+    "rename_scene": { "service": "mdi:rename-outline" },
+    "delete_library_scene": { "service": "mdi:delete-outline" },
+    "search_community_scenes": { "service": "mdi:magnify" },
+    "preview_community_scene": { "service": "mdi:earth" },
+    "save_community_scene": { "service": "mdi:content-save-outline" },
+    "restore_default_scenes": { "service": "mdi:restore" }
+  }
+}
