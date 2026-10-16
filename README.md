@@ -1,0 +1,396 @@
+# Nanoleaf Essentials (Bluetooth) — Home Assistant integration
+
+[![hacs][hacs-badge]][hacs-url]
+[![release][release-badge]][release-url]
+[![validate][validate-badge]][validate-url]
+[![tests][tests-badge]][tests-url]
+[![license][license-badge]](LICENSE)
+
+> **Scenes, effects and local control for Nanoleaf Essentials over Bluetooth.**
+> Works through your ESPHome Bluetooth proxies. Local control, no cloud needed,
+> no re-pairing.
+
+Controls **Nanoleaf Essentials** lightstrips and bulbs, and the **Secretlab
+MAGRGB** strip, from Home Assistant over Bluetooth LE, through a local adapter
+or an ESPHome Bluetooth proxy. It pairs alongside the Nanoleaf app with the
+setup code printed on the strip, keeps one connection open so commands land in
+about 200 ms, and polls that connection to pick up changes made in the app.
+
+Developed and verified on a **Secretlab MAGRGB (NL62)**, firmware 1.6.49.
+
+> **Testers wanted.** If you have an **Essentials Lightstrip (NL55 or NL68)** or
+> an **Essentials A19 bulb (NL45)**, please tell us how it goes — a
+> [device report][device-report] with the diagnostics attached takes two
+> minutes, and is how support for your model gets confirmed.
+
+Home Assistant can already reach Essentials lights through **HomeKit
+Controller** or **Matter**. What this integration adds is what those paths
+don't give you: the strip's **multi-colour scenes as effects**, scenes of your
+own and from the **Nanoleaf community library**, stored on the strip or played
+from Home Assistant without taking a slot — and no Thread border router.
+
+## Features
+
+| Capability | How |
+|---|---|
+| Discovery | Bluetooth advertisement (company 0x080B): the strip shows up under *Discovered* |
+| Pairing | the 8-digit setup code on the strip, alongside the Nanoleaf app (no factory reset) |
+| On/off, brightness, colour | `lb/0/oo`, `pb`, `hu` + `sa`; colour temperature where the model has it |
+| Scenes on the strip as effects | named like in the app, playable from Home Assistant |
+| A scene library in Home Assistant | your own scenes and community scenes, shared by all strips, previewed without using a slot |
+| Community scenes | search, preview, save and store scenes from the Nanoleaf library, keeping their names |
+| Scene slots | stores and removes scenes, keeps track of the 12-scene limit |
+| Default scenes | names the built-in scenes, and writes the app's Secretlab defaults when missing |
+| Restore after power loss | a switch |
+| Identify | a button that blinks the strip |
+| Diagnostics | firmware, hardware, serial number, model, protocol, signal strength |
+
+### Compatibility
+
+| Model | Product | Status |
+|---|---|---|
+| NL62 | Secretlab MAGRGB | **Tested** (firmware 1.6.49) |
+| NL55 | Essentials Lightstrip | Should work — **testers wanted** |
+| NL68 | Essentials Lightstrip (Matter) | Should work — **testers wanted** |
+| NL45 | Essentials A19 bulb | Should work — **testers wanted** |
+| Any of the above on firmware **5.0.0 or later** | | **Experimental**: on/off, brightness, colour and identify only (see below) |
+
+Other Nanoleaf devices are not supported. If you have a **1D device**
+(NL71, NL72, NL73, NL75, NL77 — string lights, outdoor and Wi-Fi strips), they
+speak a close relative of this protocol and we would love help getting them
+working: open a [device report][device-report] or see
+[CONTRIBUTING.md](CONTRIBUTING.md). The light panels (Shapes, Canvas,
+Elements, Lines) are Wi-Fi devices with their own core integration.
+
+### Known limits
+
+* **Changes made in the Nanoleaf app appear within the poll interval** (15 s by
+  default). The strip reports nothing by itself, so it is read on a timer over
+  the open connection. Commands from Home Assistant are immediate.
+* **Each strip uses one Bluetooth connection, all the time.** An ESPHome proxy
+  has three connection slots by default; a strip keeps one of them. Plan your
+  proxies accordingly (`bluetooth_proxy: active: true` and, if needed, more
+  `connection_slots`).
+* **Firmware 5.0.0 and later is experimental.** It speaks a newer protocol
+  (LTPDUv3) that is implemented from the app's code but has never been tested on
+  a real strip, and stores scenes in a different format that is not implemented.
+  Scenes and Restore after power loss are therefore not available there. A
+  repair notice says so.
+* **Legacy firmware cannot unpair.** Below firmware 5 the strip has no command
+  to forget a controller, so removing the integration leaves its token valid on
+  the strip until a factory reset. (On firmware 5 removal unpairs.) The token is
+  only usable by whoever has it.
+* **A strip holds 12 scenes, built-in ones included.** The Secretlab strip
+  arrives with ten, which leaves two slots. Library scenes play without a slot.
+* **The factory scenes (IDs 250–254) are never deleted**, because there is no
+  known way to put one back. The app-written Secretlab defaults (244–249) may
+  be deleted to make room: *Restore default scenes* writes them back.
+* **Scene names live in Home Assistant**, as they live in the app: the strip
+  stores numbers only. Scenes stored by the app appear as "Scene N" (a stored
+  scene with ID 0 plays, but is reported as no effect: the strip reports 0 for
+  "nothing playing").
+* **Community motions the strip cannot play** (Wheel, Burst, Radiate, …) become
+  *Random* with default timing — exactly what the Nanoleaf app does.
+
+## Installation
+
+Requires **Home Assistant 2025.3 or newer** and a Bluetooth adapter or an
+ESPHome Bluetooth proxy that can make active connections. There are no external
+Python dependencies.
+
+### HACS (custom repository)
+
+[![Open your Home Assistant instance and open this repository in HACS.][my-hacs-badge]][my-hacs-url]
+
+Or by hand:
+
+1. HACS → Integrations → ⋮ → **Custom repositories**
+2. Add `https://github.com/jorgediez/ha-nanoleaf-ble` as an **Integration**
+3. Install **Nanoleaf Essentials (Bluetooth)**, then restart Home Assistant
+
+### Manual
+
+Copy `custom_components/nanoleaf_ble/` into your Home Assistant
+`config/custom_components/` directory and restart.
+
+## Configuration
+
+Strips in range show up under *Settings → Devices & Services → Discovered*.
+Click **Add**, then enter the **8-digit setup code** printed on the strip or
+its box (the code next to the QR code; dashes are optional). Pairing does not
+disturb the Nanoleaf app or its pairing.
+
+[![Open your Home Assistant instance and start setting up the integration.][my-setup-badge]][my-setup-url]
+
+You can also start from *Add Integration → Nanoleaf Essentials (Bluetooth)* and
+pick a strip Home Assistant has heard.
+
+**Already paired the strip with another tool?** Open **Advanced: use an
+existing auth token** on the pairing form, leave the code empty and paste the
+token in hex (for example from `scripts/nanoleaf_cli.py pair`). Firmware 5
+also needs the client ID that came with it.
+
+**Reconfigure** (*⋮ → Reconfigure*) pairs again or switches to another token.
+If the strip is factory-reset, Home Assistant asks you to pair again.
+
+### Options
+
+| Option | Default | |
+|---|---|---|
+| Poll interval | 15 s (5–300) | How often the strip is read for changes made elsewhere. Shorter notices the app sooner; each poll is about 0.6 s of radio time. |
+
+## Entities
+
+| Entity | |
+|---|---|
+| **Light** | on/off, brightness, HS colour (and colour temperature where the model has one), effects: the scenes on the strip, then the library scenes |
+| **Restore after power loss** (switch, config) | on: the strip comes back as it was after a power cut; off: it stays off |
+| **Identify** (button, diagnostic) | blinks the strip; needs no pairing |
+| **Restore default scenes** (button, config) | Secretlab only: writes back the app's default scenes that are missing |
+| **Community search** (text) | setting it searches the Nanoleaf community library |
+| **Community scene** (select) | the search results |
+| **Preview / Save to library / Add to strip** (buttons) | act on the selected community scene |
+| **Scene** (select) | every scene: on the strip, then in the library |
+| **Add to strip / Remove from strip / Delete from library** (buttons) | act on the selected scene |
+| **Free scene slots**, **Scenes on strip** (sensors) | of the 12 |
+| **Firmware**, **Hardware version**, **Serial number**, **Model**, **Protocol**, **Signal strength** (diagnostic sensors) | signal strength is disabled by default |
+
+Brightness dims a running scene without stopping it; a colour replaces it.
+Turning the light off and on again resumes whatever was playing.
+
+### Scenes: on the strip, or in the library
+
+A scene **on the strip** lives in one of its 12 slots: it plays from the app,
+from Home Assistant, and after a power cut. A scene **in the library** lives in
+Home Assistant, is shared by all your strips, and plays as a *preview* — no slot
+needed, but the app does not know about it. You can move a library scene onto a
+strip at any time (*Add to strip*), and take it off again.
+
+Effect names follow the app: the built-in scenes by their names
+(Northern Lights, Cloud9, …), scenes the integration stored by the names you
+gave them. If the app later stores a different scene under the same number, the
+integration notices from the scene's content and stops using the old name.
+
+**First pairing.** After pairing, the Nanoleaf app writes six default scenes to
+Secretlab strips (Cyberpunk 2077, VALORANT, Assassin's Creed, Dark Knight, The
+Joker, Attack on Titan). If Home Assistant is the first to pair, it does the
+same, once — but only into free slots, and it never deletes anything to make
+room. Whatever does not fit is listed in a repair notice.
+
+## Actions
+
+```yaml
+# Create a scene in the library, store it on a strip and play it
+action: nanoleaf_ble.create_scene
+target:
+  entity_id: light.secretlab_magrgb_be3a
+data:
+  name: Sunset
+  effect: flow            # fade, random, highlight, flow or stripes
+  colours:
+    - [255, 80, 0]
+    - [255, 0, 90]
+    - {hue: 270, saturation: 80, brightness: 60, repeat: 2}
+  speed: 40               # tenths of a second
+  direction: right
+  add_to_strip: true
+  play: true
+
+# Play a scene without saving it
+action: nanoleaf_ble.preview_scene
+target:
+  entity_id: light.secretlab_magrgb_be3a
+data:
+  effect: fade
+  colours: [[255, 0, 0], [0, 0, 255]]
+  speed: 10
+
+# Search the community library (returns the results)
+action: nanoleaf_ble.search_community_scenes
+data:
+  query: aurora
+  sort: top
+response_variable: found
+
+# Save the first result, keeping its name, and store it on the strip
+action: nanoleaf_ble.save_community_scene
+target:
+  entity_id: light.secretlab_magrgb_be3a
+data:
+  key: "{{ found.scenes[0].key }}"
+  add_to_strip: true
+```
+
+| Action | Target | What it does |
+|---|---|---|
+| `create_scene` | optional | adds a scene to the library; `add_to_strip` and `play` need a target |
+| `preview_scene` | required | plays a scene without saving it |
+| `add_scene_to_strip` | required | stores a library scene on strips |
+| `remove_scene_from_strip` | required | deletes a scene from strips (never a factory scene) |
+| `rename_scene` | — | renames a library scene and its copies on strips |
+| `delete_library_scene` | — | deletes a library scene; copies on strips stay |
+| `search_community_scenes` | — | returns `scenes: [{key, name, creator, motion, featured, downloads}]` |
+| `preview_community_scene` | required | plays a community scene without saving it |
+| `save_community_scene` | optional | saves to the library (optionally `name`), and with `add_to_strip` stores it |
+| `restore_default_scenes` | required | writes back the Secretlab defaults that are missing |
+
+Colours are `[red, green, blue]` (0–255) or
+`{hue: 0-360, saturation: 0-100, brightness: 0-100, repeat: N}`; `repeat` plays
+that colour N times in the cycle. Speed and delay are in tenths of a second
+(1–255). Each effect takes only its own settings:
+
+| Effect | Settings (defaults) |
+|---|---|
+| fade | speed (24), delay (0), loop (on) |
+| random | speed, delay |
+| highlight | speed, delay, main_colour_probability (80 %) |
+| flow | speed, delay, direction (left), loop |
+| stripes | speed, direction, segment (50) |
+
+### Example automations
+
+```yaml
+# Northern Lights at sunset, dimmed
+triggers:
+  - trigger: sun
+    event: sunset
+actions:
+  - action: light.turn_on
+    target:
+      entity_id: light.secretlab_magrgb_be3a
+    data:
+      effect: Northern Lights
+      brightness_pct: 40
+
+# Flash red while the alarm is triggered, then go back to a warm white
+triggers:
+  - trigger: state
+    entity_id: alarm_control_panel.home
+    to: triggered
+actions:
+  - action: nanoleaf_ble.preview_scene
+    target:
+      entity_id: light.secretlab_magrgb_be3a
+    data:
+      effect: fade
+      colours: [[255, 0, 0], [0, 0, 0]]
+      speed: 3
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: alarm_control_panel.home
+        from: triggered
+  - action: light.turn_on
+    target:
+      entity_id: light.secretlab_magrgb_be3a
+    data:
+      hs_color: [30, 40]
+```
+
+## Troubleshooting
+
+* **The strip is not discovered.** It must be powered and in range of an
+  adapter or proxy that can connect (an ESPHome proxy needs
+  `bluetooth_proxy: active: true`). Discovery also stops once the strip is set
+  up.
+* **"Could not connect".** All connection slots of the nearest proxy may be in
+  use, or the strip is out of range. The strip sometimes refuses a connection
+  right after another one; the integration waits and retries on its own.
+* **"The strip refused the setup code".** Check the 8 digits on the strip's
+  label or box. Some strips limit how many controllers they accept ("accepts no
+  more controllers"); only a factory reset frees those slots.
+* **A scene stored by the app shows as "Scene N".** The strip stores numbers,
+  not names; the app keeps its names to itself.
+* **"The strip is full".** Remove a scene first, or play scenes from the library
+  (which takes no slot).
+
+When reporting a problem, attach the integration's diagnostics: *Settings →
+Devices & Services → Nanoleaf Essentials (Bluetooth) → ⋮ → Download
+diagnostics*. The Bluetooth address, auth token, serial number and device ID
+are redacted. A debug log helps too; enable it from the same menu, or with:
+
+```yaml
+logger:
+  logs:
+    custom_components.nanoleaf_ble: debug
+```
+
+## Removal
+
+1. *Settings → Devices & Services → Nanoleaf Essentials (Bluetooth)*, then
+   **⋮ → Delete** on each strip.
+2. If you installed through HACS, remove **Nanoleaf Essentials (Bluetooth)**
+   there; otherwise delete `config/custom_components/nanoleaf_ble/`.
+3. Restart Home Assistant.
+
+What is left on the strip: scenes you stored on it stay there (they keep
+working from the app, under "Scene N"). On firmware 5 the integration unpairs
+itself; on older firmware the strip keeps accepting its token until a factory
+reset, since that firmware has no unpair command. The scene library is kept in
+Home Assistant's storage (`.storage/nanoleaf_ble`) until you delete it.
+
+## Icons
+
+Entity and action icons ship in `icons.json`. The brand tile is served from
+`custom_components/nanoleaf_ble/brand/` (Home Assistant **2026.3** and later; on
+older releases the tile shows the default placeholder). The artwork is a
+**generic LED strip, not the Nanoleaf or Secretlab logo**: a community
+integration should not imply an official association. Regenerate it with
+`python scripts/make_brand_images.py` (needs `pillow`).
+
+## Protocol
+
+The strips speak an undocumented Bluetooth protocol, reconstructed from the
+Nanoleaf Android app and verified on hardware. It is described in full in
+**[docs/PROTOCOL.md](docs/PROTOCOL.md)**: discovery, the two pairing and
+encryption schemes, the command language, scenes, the community library, device
+information and power-loss recovery, with what has and has not been tested.
+
+The protocol code lives in `custom_components/nanoleaf_ble/lib/`, with no Home
+Assistant imports, so it can be used on its own:
+
+```bash
+pip install bleak cryptography
+python scripts/nanoleaf_cli.py scan
+python scripts/nanoleaf_cli.py pair DF:31:88:26:BE:3A 12345678
+python scripts/nanoleaf_cli.py scene DF:31:88:26:BE:3A "Northern Lights"
+```
+
+`scripts/esphome_proxy.py` runs the same commands through an ESPHome Bluetooth
+proxy.
+
+## Contributing
+
+Reports from models other than the NL62 are the most useful thing you can send,
+and firmware 5 and 1D devices need testers. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for how to report, and how to work on the code.
+
+## Disclaimer
+
+This is an unofficial, community project. It is not affiliated with or endorsed
+by Nanoleaf or Secretlab. All trademarks belong to their respective owners. Use
+at your own risk.
+
+## Credits
+
+* [roysjosh/nanoleaf-ltpdu][ltpdu], which explored the same protocol family over
+  Thread.
+
+## License
+
+[MIT](LICENSE)
+
+[device-report]: https://github.com/jorgediez/ha-nanoleaf-ble/issues/new?template=device_report.yml
+[ltpdu]: https://github.com/roysjosh/nanoleaf-ltpdu
+[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
+[hacs-url]: https://github.com/hacs/integration
+[release-badge]: https://img.shields.io/github/v/release/jorgediez/ha-nanoleaf-ble
+[release-url]: https://github.com/jorgediez/ha-nanoleaf-ble/releases
+[validate-badge]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/validate.yml/badge.svg
+[validate-url]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/validate.yml
+[tests-badge]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/tests.yml/badge.svg
+[tests-url]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/tests.yml
+[license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[my-hacs-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
+[my-hacs-url]: https://my.home-assistant.io/redirect/hacs_repository/?owner=jorgediez&repository=ha-nanoleaf-ble&category=integration
+[my-setup-badge]: https://my.home-assistant.io/badges/config_flow_start.svg
+[my-setup-url]: https://my.home-assistant.io/redirect/config_flow_start/?domain=nanoleaf_ble
