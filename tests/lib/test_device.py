@@ -301,3 +301,33 @@ async def test_v3_silent_device_times_out():
     device = NanoleafDevice(Silent(), NL55_V3, name=LOCAL_NAME, timeout=0.05)
     with pytest.raises(NanoleafConnectionError):
         await device.login(Credentials(TOKEN, 0x0042))
+
+
+async def test_refusals_are_gatt_errors_and_logins_are_silent():
+    """As the NL62 does: a GATT error refuses, an empty reply logs in."""
+    strip = FakeLegacyStrip()
+    device = NanoleafDevice(strip, NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafAuthError, match="Internal error"):
+        await device.pair("87654321")
+    device = NanoleafDevice(FakeLegacyStrip(), NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafAuthError, match="Wrong state"):
+        await device.login(Credentials(bytes.fromhex("0011223344556677")))
+    device = NanoleafDevice(FakeLegacyStrip(), NL62, name=LOCAL_NAME)
+    await device.login(Credentials(TOKEN))  # the strip answers nothing
+    assert device.authenticated
+
+
+async def test_link_lost_during_login_is_not_a_refusal():
+    class Dropping(FakeLegacyStrip):
+        async def read_gatt_char(self, char):
+            if (
+                char == "6d2adfda-9aea-11ea-bb37-0242ac130002"
+                and self._phase == "token"
+            ):
+                self.is_connected = False
+                raise BleakError("disconnected")
+            return await super().read_gatt_char(char)
+
+    device = NanoleafDevice(Dropping(), NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafConnectionError):
+        await device.login(Credentials(TOKEN))
