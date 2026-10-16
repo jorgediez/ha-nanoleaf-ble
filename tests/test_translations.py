@@ -68,3 +68,21 @@ def test_flow_placeholders_are_provided():
     for step in ("pair", "reauth_confirm", "reconfigure"):
         text = json.dumps(EN["config"]["step"][step])
         assert set(re.findall(r"\{(\w+)\}", text)) <= {"name", "firmware"}
+
+
+def _strings(tree: dict, prefix: str = ""):
+    for key, value in tree.items():
+        if isinstance(value, dict):
+            yield from _strings(value, f"{prefix}{key}.")
+        else:
+            yield f"{prefix}{key}", value
+
+
+def test_braces_are_only_placeholders():
+    """Hassfest rejects any {...} that is not a placeholder name."""
+    bad = [
+        key
+        for key, text in _strings(EN)
+        if re.search(r"\{(?![A-Za-z_][A-Za-z0-9_]*\})", text)
+    ]
+    assert not bad

@@ -213,7 +213,7 @@
       "fields": {
         "name": { "name": "Name", "description": "The scene's name, unique in the library." },
         "effect": { "name": "Motion", "description": "How the colours move." },
-        "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] or {hue: 0-360, saturation: 0-100, brightness: 0-100, repeat: copies}." },
+        "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] (0-255), or a mapping with hue (0-360), saturation and brightness (0-100), and optionally repeat (copies of the colour)." },
         "speed": { "name": "Speed", "description": "Transition time in tenths of a second (1-255). Default 24." },
         "delay": { "name": "Delay", "description": "Hold time in tenths of a second (0-255), for fade, random, highlight and flow. Default 0." },
         "loop": { "name": "Loop", "description": "Repeat the sequence (fade and flow). Default on." },
@@ -229,7 +229,7 @@
       "description": "Plays a scene without saving it anywhere.",
       "fields": {
         "effect": { "name": "Motion", "description": "How the colours move." },
-        "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] or {hue, saturation, brightness, repeat}." },
+        "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] (0-255), or a mapping with hue, saturation, brightness and optionally repeat." },
         "speed": { "name": "Speed", "description": "Transition time in tenths of a second (1-255)." },
         "delay": { "name": "Delay", "description": "Hold time in tenths of a second (0-255)." },
         "loop": { "name": "Loop", "description": "Repeat the sequence (fade and flow)." },
