@@ -11,7 +11,7 @@
     },
     "select": {
       "community_scene": { "default": "mdi:earth" },
-      "scene": { "default": "mdi:palette" }
+      "scene_to_manage": { "default": "mdi:palette-swatch-outline" }
     },
     "sensor": {
       "free_scene_slots": { "default": "mdi:tray-full" },

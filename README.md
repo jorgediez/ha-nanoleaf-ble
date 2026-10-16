@@ -147,13 +147,18 @@ If the strip is factory-reset, Home Assistant asks you to pair again.
 | **Restore after power loss** (switch, config) | on: the strip comes back as it was after a power cut; off: it stays off |
 | **Identify** (button, diagnostic) | blinks the strip; needs no pairing |
 | **Restore default scenes** (button, config) | Secretlab only: writes back the app's default scenes that are missing |
-| **Community search** (text) | setting it searches the Nanoleaf community library |
-| **Community scene** (select) | the search results |
-| **Preview / Save to library / Add to strip** (buttons) | act on the selected community scene |
-| **Scene** (select) | every scene: on the strip, then in the library |
-| **Add to strip / Remove from strip / Delete from library** (buttons) | act on the selected scene |
+| **Community search** (text, config) | setting it searches the Nanoleaf community library |
+| **Community scene** (select, config) | the search results |
+| **Preview / Save to library / Add to strip** (buttons, config) | act on the selected community scene |
+| **Scene to manage** (select, config) | which scene the buttons below act on: every scene on the strip, then in the library. Picking one plays nothing; until you pick one it shows the scene playing |
+| **Add to strip / Remove from strip / Delete from library** (buttons, config) | act on the scene to manage |
 | **Free scene slots**, **Scenes on strip** (sensors) | of the 12 |
 | **Firmware**, **Hardware version**, **Serial number**, **Model**, **Protocol**, **Signal strength** (diagnostic sensors) | signal strength is disabled by default |
+
+The scene and community entities are **configuration** entities: on the
+device page they sit in the *Configuration* card, apart from the light, and
+auto-generated dashboards leave them out. To play a scene, use the light's
+effect; *Scene to manage* is only for storing, removing and deleting scenes.
 
 Brightness dims a running scene without stopping it; a colour replaces it.
 Turning the light off and on again resumes whatever was playing.

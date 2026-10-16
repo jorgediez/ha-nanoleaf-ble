@@ -35,8 +35,7 @@ def _selected_community_key(coordinator: NanoleafCoordinator) -> str:
 
 
 def _selected_scene(coordinator: NanoleafCoordinator) -> str:
-    selected = coordinator.scene_selected
-    if selected is None or selected not in coordinator.effects:
+    if (selected := coordinator.managed_scene) is None:
         raise _no_selection("no_scene_selected")
     return selected
 
@@ -113,31 +112,37 @@ BUTTONS: tuple[NanoleafButtonDescription, ...] = (
     NanoleafButtonDescription(
         key="community_preview",
         translation_key="community_preview",
+        entity_category=EntityCategory.CONFIG,
         press_fn=_community_preview,
     ),
     NanoleafButtonDescription(
         key="community_save",
         translation_key="community_save",
+        entity_category=EntityCategory.CONFIG,
         press_fn=_community_save,
     ),
     NanoleafButtonDescription(
         key="community_add_to_strip",
         translation_key="community_add_to_strip",
+        entity_category=EntityCategory.CONFIG,
         press_fn=_community_add,
     ),
     NanoleafButtonDescription(
         key="scene_add_to_strip",
         translation_key="scene_add_to_strip",
+        entity_category=EntityCategory.CONFIG,
         press_fn=_scene_add,
     ),
     NanoleafButtonDescription(
         key="scene_remove_from_strip",
         translation_key="scene_remove_from_strip",
+        entity_category=EntityCategory.CONFIG,
         press_fn=_scene_remove,
     ),
     NanoleafButtonDescription(
         key="scene_delete_from_library",
         translation_key="scene_delete_from_library",
+        entity_category=EntityCategory.CONFIG,
         press_fn=_scene_delete,
     ),
 )

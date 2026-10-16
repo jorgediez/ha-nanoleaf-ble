@@ -219,7 +219,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         self.community_results: list[CommunityScene] = []
         self.community_selected: str | None = None
         self._community_cache: dict[str, tuple[Scene, list[str]]] = {}
-        #: The library or strip scene the Scene select points at.
+        #: The scene picked in "Scene to manage" (see managed_scene).
         self.scene_selected: str | None = None
 
     # ------------------------------------------------------------------ properties
@@ -565,6 +565,19 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             if target.kind == TARGET_STRIP and target.ref == current:
                 return name
         return self.scene_name(current)
+
+    @property
+    def managed_scene(self) -> str | None:
+        """Return the scene the management buttons act on.
+
+        The one picked in "Scene to manage" while it still exists; otherwise
+        the scene playing, so the select never looks empty while one plays.
+        """
+        effects = self.effects
+        if self.scene_selected in effects:
+            return self.scene_selected
+        playing = self.current_effect
+        return playing if playing in effects else None
 
     def strip_scene_id(self, name: str) -> int:
         """Return the strip scene an effect name refers to."""

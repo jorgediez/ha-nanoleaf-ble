@@ -112,7 +112,7 @@
     },
     "select": {
       "community_scene": { "name": "Community scene" },
-      "scene": { "name": "Scene" }
+      "scene_to_manage": { "name": "Scene to manage" }
     },
     "sensor": {
       "free_scene_slots": { "name": "Free scene slots" },
@@ -193,7 +193,7 @@
       "message": "Search the community first, then choose a scene in Community scene."
     },
     "no_scene_selected": {
-      "message": "Choose a scene in the Scene select first."
+      "message": "Choose a scene in Scene to manage first."
     }
   },
   "issues": {
