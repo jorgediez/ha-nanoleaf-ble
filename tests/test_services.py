@@ -297,3 +297,24 @@ async def test_unloaded_strip_is_not_a_target(
     with pytest.raises(ServiceValidationError) as err:
         await _call(hass, "restore_default_scenes", entity_id=light)
     assert err.value.translation_key == "not_a_strip"
+
+
+def test_optional_strips_are_a_field_not_a_target():
+    """A "target:" makes the frontend demand one; these work without a strip."""
+    from pathlib import Path
+
+    import yaml
+
+    services = yaml.safe_load(
+        (
+            Path(__file__).resolve().parents[1]
+            / "custom_components"
+            / "nanoleaf_ble"
+            / "services.yaml"
+        ).read_text(encoding="utf-8")
+    )
+    for name in ("create_scene", "save_community_scene"):
+        assert "target" not in services[name], name
+        assert "entity_id" in services[name]["fields"], name
+    for name in ("preview_scene", "add_scene_to_strip", "restore_default_scenes"):
+        assert "target" in services[name], name
