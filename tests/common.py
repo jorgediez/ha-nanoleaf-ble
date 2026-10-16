@@ -17,6 +17,7 @@ import struct
 from typing import Any
 
 from bleak.backends.device import BLEDevice
+from bleak.exc import BleakError
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
     X25519PrivateKey,
     X25519PublicKey,
@@ -314,15 +315,25 @@ class FakeLegacyStrip(FakeClient):
         assert self._stream is not None
         message = self._stream.xor(data)
         kind, secret = message[0], message[2 : 2 + message[1]]
-        reply = b""
+        # As the NL62 does: a pairing returns the new token; a login returns
+        # nothing; a wrong code or token is refused with a GATT error.
+        reply, self._refusal = b"", None
         if kind == 0x03 and secret.decode() == self.setup_code:
             if self.accepts_pairings:
                 reply = secrets.token_bytes(8)
                 self.tokens.add(reply)
             else:
                 reply = const.LEGACY_NO_MORE_PAIRINGS
-        elif kind == 0x02 and secret in self.tokens:
-            reply = secret
+        elif kind == 0x03:
+            self._refusal = BleakError(
+                f"Bluetooth GATT Error address={ADDRESS} handle=142 error=129 "
+                "description=Internal error"
+            )
+        elif secret not in self.tokens:
+            self._refusal = BleakError(
+                f"Bluetooth GATT Error address={ADDRESS} handle=142 error=130 "
+                "description=Wrong state"
+            )
         self._setup_reply = self._stream.xor(reply)
         self._phase = "token"
 
@@ -330,6 +341,8 @@ class FakeLegacyStrip(FakeClient):
         """Answer a read."""
         self._check()
         if char == const.LEGACY_SETUP_UUID:
+            if getattr(self, "_refusal", None) is not None:
+                raise self._refusal
             return bytearray(self._setup_reply)
         if char == const.LEGACY_ENCRYPTED_UUID:
             return bytearray(self._encrypted_reply)

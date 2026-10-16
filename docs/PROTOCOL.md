@@ -206,7 +206,7 @@ On connect, the app requests connection priority HIGH and an MTU of **178** (Hom
 4. **Write** to `…ADFDA` the encrypted TLV8 (1-byte type, 1-byte length):
    * pairing: `03 <len> <setup code as ASCII digits>`
    * reconnect: `02 <len> <auth token>`
-5. **Read** `…ADFDA` and decrypt it to get the auth token. Store it. A single byte `0x86` means "no more pairings allowed". An empty value means the token is invalid.
+5. **Read** `…ADFDA` and decrypt it. When pairing, it is the auth token: store it. A single byte `0x86` means "no more pairings allowed". The app's code treats an empty value as an invalid token, but **the NL62 behaves differently** (verified 2026-10-16): a successful **login** is answered with an **empty** value, and a wrong setup code or token is refused with a **GATT error** on this exchange (seen: 129 "Internal error" for a wrong code, 130 "Wrong state" for an unknown token).
 
 ### 3.3 Requests
 
@@ -383,8 +383,8 @@ See `custom_components/nanoleaf_ble/lib/` (`legacy.py`, `ltpdu_v3.py`, `device.p
 |---|---|
 | Public Identify: CoAP `nlpublic` on `A9E0A2DE` | Strip blinks white. Read-back is `62 44 <mid> <tok> FF 0001 0007 "lb/0/id" 0003 0001 00` (CoAP ACK 2.04, status 0). Unwrapped LTPDU gets GATT error 132 (Busy). |
 | X25519 key exchange | The device returns a fresh 32-byte public key on every connection. Reading `6D2ADFDA` again before the auth write gives error 135 (Illegal parameter), so the steps must run in order. |
-| Pairing with the setup code (ASCII digits, TLV `03`) | Returns an **8-byte auth token**. |
-| Login with the token (TLV `02`) | Works. All encrypted requests and responses decrypt correctly (`AES-NL-OPENAPI` salts, one shared CTR keystream). |
+| Pairing with the setup code (ASCII digits, TLV `03`) | Returns an **8-byte auth token**. A wrong code: GATT error 129 (verified 2026-10-16). |
+| Login with the token (TLV `02`) | Works; the reply is **empty** (verified 2026-10-16). An unknown token: GATT error 130. All encrypted requests and responses decrypt correctly (`AES-NL-OPENAPI` salts, one shared CTR keystream). A token works through any proxy, not only the one that paired (verified with two ESPHome proxies). |
 | `lb/0/oo`, `lb/0/pb`, `lb/0/hu`, `lb/0/sa`: GET and PUT | All status 0. Values read back as expected. |
 | `lb/0/ct`, `lb/0/cm` | Status **4** (invalid endpoint). This model has **no colour temperature**. |
 

@@ -11,6 +11,7 @@ import hashlib
 import logging
 from typing import Protocol
 
+from bleak.exc import BleakError
 from cryptography.hazmat.primitives.asymmetric.x25519 import (
     X25519PrivateKey,
     X25519PublicKey,
@@ -53,6 +54,10 @@ class GattClient(Protocol):
 
     async def read_gatt_char(self, char_specifier: str) -> bytearray:
         """Read a characteristic."""
+
+    @property
+    def is_connected(self) -> bool:
+        """Return whether the link is up."""
 
 
 class SharedCTR:
@@ -97,6 +102,7 @@ class LegacySession:
         Return the auth token: a new one when pairing, the same one on login.
         The steps must run in this order on a fresh connection; reading the
         setup characteristic out of turn makes the device answer error 135.
+        Raise NanoleafAuthError when the device refuses the code or token.
         """
         private_key = X25519PrivateKey.generate()
         await self._client.write_gatt_char(
@@ -128,21 +134,33 @@ class LegacySession:
             message = bytes([_TLV_SETUP_CODE, len(secret)]) + secret
         else:
             message = bytes([_TLV_TOKEN, len(token)]) + token
-        await self._client.write_gatt_char(
-            LEGACY_SETUP_UUID, self._stream.xor(message), response=True
-        )
-        reply = self._stream.xor(
-            bytes(await self._client.read_gatt_char(LEGACY_SETUP_UUID))
-        )
+        try:
+            await self._client.write_gatt_char(
+                LEGACY_SETUP_UUID, self._stream.xor(message), response=True
+            )
+            reply = self._stream.xor(
+                bytes(await self._client.read_gatt_char(LEGACY_SETUP_UUID))
+            )
+        except BleakError as exc:
+            # The NL62 refuses a wrong setup code or token with a GATT error on
+            # this exchange (seen: 129 "Internal error", 130 "Wrong state"),
+            # not with the empty reply the app's code suggests. With the link
+            # still up, the device answered: that is a refusal.
+            if not self._client.is_connected:
+                raise
+            raise NanoleafAuthError(
+                f"the device refused the {'token' if token else 'setup code'} ({exc})"
+            ) from exc
         if reply == LEGACY_NO_MORE_PAIRINGS:
             raise NanoleafTooManyPairingsError("the device accepts no more pairings")
+        if token is not None:
+            # A login is answered with nothing at all (verified on the NL62): the
+            # reply carries a token only when pairing.
+            _LOGGER.debug("legacy session logged in")
+            return token
         if not reply:
-            raise NanoleafAuthError(
-                "the device refused the token"
-                if token is not None
-                else "the device refused the setup code"
-            )
-        _LOGGER.debug("legacy session authenticated (%s-byte token)", len(reply))
+            raise NanoleafAuthError("the device refused the setup code")
+        _LOGGER.debug("legacy session paired (%s-byte token)", len(reply))
         return reply
 
     async def request(
