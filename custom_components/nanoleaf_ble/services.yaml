@@ -1,9 +1,13 @@
 create_scene:
-  target:
-    entity:
-      integration: nanoleaf_ble
-      domain: light
+  # No "target:": the frontend would then demand one, and these work
+  # without a strip (library only). The strips are an optional field instead.
   fields:
+    entity_id:
+      selector:
+        entity:
+          integration: nanoleaf_ble
+          domain: light
+          multiple: true
     name:
       required: true
       selector:
@@ -150,11 +154,15 @@ preview_community_scene:
         text:
 
 save_community_scene:
-  target:
-    entity:
-      integration: nanoleaf_ble
-      domain: light
+  # No "target:": the frontend would then demand one, and these work
+  # without a strip (library only). The strips are an optional field instead.
   fields:
+    entity_id:
+      selector:
+        entity:
+          integration: nanoleaf_ble
+          domain: light
+          multiple: true
     key:
       required: true
       selector:

@@ -211,6 +211,7 @@
       "name": "Create scene",
       "description": "Creates a scene in the scene library, shared by all strips. Optionally adds it to strips and plays it.",
       "fields": {
+        "entity_id": { "name": "Strips", "description": "Strips to add the scene to or play it on (needed for Add to strip and Play)." },
         "name": { "name": "Name", "description": "The scene's name, unique in the library." },
         "effect": { "name": "Motion", "description": "How the colours move." },
         "colours": { "name": "Colours", "description": "1 to 7 colours, each [red, green, blue] (0-255), or a mapping with hue (0-360), saturation and brightness (0-100), and optionally repeat (copies of the colour)." },
@@ -287,6 +288,7 @@
       "name": "Save community scene",
       "description": "Saves a community scene to the library, keeping its name, and optionally stores it on strips.",
       "fields": {
+        "entity_id": { "name": "Strips", "description": "Strips to store it on (needed for Add to strip)." },
         "key": { "name": "Key", "description": "The key from a search result." },
         "name": { "name": "Name", "description": "A name of your own instead of the community one." },
         "add_to_strip": { "name": "Add to strip", "description": "Also store it on the strips." }
