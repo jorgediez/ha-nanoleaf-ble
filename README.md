@@ -185,6 +185,14 @@ room. Whatever does not fit is listed in a repair notice.
 ## Actions
 
 ```yaml
+# Create a scene in the library only (no strip needed)
+action: nanoleaf_ble.create_scene
+data:
+  name: Test Fade
+  effect: fade
+  colours: [[255, 0, 0], [0, 0, 255]]
+  speed: 10
+
 # Create a scene in the library, store it on a strip and play it
 action: nanoleaf_ble.create_scene
 target:
@@ -226,9 +234,9 @@ data:
   add_to_strip: true
 ```
 
-| Action | Target | What it does |
+| Action | Strips | What it does |
 |---|---|---|
-| `create_scene` | optional | adds a scene to the library; `add_to_strip` and `play` need a target |
+| `create_scene` | optional | adds a scene to the library; `add_to_strip` and `play` need strips |
 | `preview_scene` | required | plays a scene without saving it |
 | `add_scene_to_strip` | required | stores a library scene on strips |
 | `remove_scene_from_strip` | required | deletes a scene from strips (never a factory scene) |
@@ -236,8 +244,12 @@ data:
 | `delete_library_scene` | — | deletes a library scene; copies on strips stay |
 | `search_community_scenes` | — | returns `scenes: [{key, name, creator, motion, featured, downloads}]` |
 | `preview_community_scene` | required | plays a community scene without saving it |
-| `save_community_scene` | optional | saves to the library (optionally `name`), and with `add_to_strip` stores it |
+| `save_community_scene` | optional | saves to the library (optionally `name`), and with `add_to_strip` stores it on the strips |
 | `restore_default_scenes` | required | writes back the Secretlab defaults that are missing |
+
+*Required* strips go in `target:`. For the two *optional* ones, give them as
+`entity_id` under `data:` (the **Strips** field in the UI), or as a `target:`;
+both work.
 
 Colours are `[red, green, blue]` (0–255) or
 `{hue: 0-360, saturation: 0-100, brightness: 0-100, repeat: N}`; `repeat` plays
