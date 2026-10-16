@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_LOCAL_NAME, DATA_STORE, DOMAIN
+from .const import CONF_LOCAL_NAME, DATA_STORE, DOMAIN, ISSUES_URL
 from .coordinator import (
     NanoleafConfigEntry,
     NanoleafCoordinator,
@@ -74,6 +74,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> 
             translation_placeholders={
                 "name": entry.title,
                 "firmware": coordinator.advertisement.firmware_version,
+                # Hassfest keeps URLs out of translations.
+                "issues_url": ISSUES_URL,
             },
         )
     else:

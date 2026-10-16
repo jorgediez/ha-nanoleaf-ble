@@ -199,7 +199,7 @@
   "issues": {
     "experimental_firmware": {
       "title": "{name}: firmware {firmware} support is experimental",
-      "description": "Firmware 5.0.0 and later speaks a newer protocol that has not been tested on a real strip yet. On/off, brightness, colour and identify should work; scenes and Restore after power loss are not available.\n\nPlease report how it goes, with diagnostics attached: https://github.com/jorgediez/ha-nanoleaf-ble/issues"
+      "description": "Firmware 5.0.0 and later speaks a newer protocol that has not been tested on a real strip yet. On/off, brightness, colour and identify should work; scenes and Restore after power loss are not available.\n\nPlease report how it goes, with diagnostics attached: {issues_url}"
     },
     "default_scenes_incomplete": {
       "title": "{name}: not every default scene fits",

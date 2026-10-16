@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 DOMAIN: Final = "nanoleaf_ble"
 MANUFACTURER: Final = "Nanoleaf"
+ISSUES_URL: Final = "https://github.com/jorgediez/ha-nanoleaf-ble/issues"
 
 # Config entry data.
 CONF_TOKEN: Final = "token"  # noqa: S105 - a config key, not a secret

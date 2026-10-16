@@ -133,9 +133,10 @@ async def test_firmware_5_is_experimental(
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    assert ir.async_get(hass).async_get_issue(
+    issue = ir.async_get(hass).async_get_issue(
         DOMAIN, f"experimental_firmware_{entry.entry_id}"
     )
+    assert issue.translation_placeholders["issues_url"].startswith("https://")
     assert not entry.runtime_data.supports_scenes
 
     # Removal unpairs, over a fresh connection.

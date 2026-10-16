@@ -86,3 +86,8 @@ def test_braces_are_only_placeholders():
         if re.search(r"\{(?![A-Za-z_][A-Za-z0-9_]*\})", text)
     ]
     assert not bad
+
+
+def test_no_urls():
+    """Hassfest wants URLs passed as placeholders, not written in the text."""
+    assert not [key for key, text in _strings(EN) if "://" in text]
