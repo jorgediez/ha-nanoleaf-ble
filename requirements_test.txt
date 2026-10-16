@@ -1,0 +1,10 @@
+# Pins the newest stable Home Assistant, and with it pytest, pytest-asyncio,
+# pytest-timeout, pytest-cov and PyYAML. Skip harness releases built on a beta.
+pytest-homeassistant-custom-component==0.13.367
+ruff==0.16.10
+# The bluetooth component imports usb, whose requirements the harness does not
+# install. Pinned as core pins them (homeassistant/components/usb/manifest.json);
+# pyserial is what usb used before serialx, for the "min" job.
+aiousbwatcher==1.1.2
+serialx==1.10.0
+pyserial==3.5

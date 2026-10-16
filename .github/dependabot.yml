@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      pip:
+        patterns: ["*"]
+    ignore:
+      # Test-only requirements of core's usb component: they follow whatever
+      # Home Assistant pins, not their own releases.
+      - dependency-name: aiousbwatcher
+      - dependency-name: serialx
+      - dependency-name: pyserial

@@ -1,0 +1,59 @@
+name: Bug report
+description: Something doesn't work as expected.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Device model
+      description: Shown by the "Model" diagnostic sensor (NL62, NL55, NL45, NL68, ...).
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: Shown by the "Firmware" diagnostic sensor.
+    validations:
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration version
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: dropdown
+    id: adapter
+    attributes:
+      label: Bluetooth connection
+      options:
+        - ESPHome Bluetooth proxy
+        - Local Bluetooth adapter
+        - Other / not sure
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: >-
+        Settings → Devices & Services → Nanoleaf Essentials (Bluetooth) → ⋮ →
+        Download diagnostics, and attach the file. (The Bluetooth address, auth
+        token, serial number and device ID are redacted.)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from the Home Assistant log, with debug logging enabled if possible.
+      render: text

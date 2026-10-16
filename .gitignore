@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtualenvs
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local tooling state, and the agent notes kept next to the code but not
+# published.
+.claude/
+CLAUDE.md
+
+# Local scratch: captures and notes. Never publish these.
+tmp/
+
+# Pairing credentials written by scripts/nanoleaf_cli.py. An auth token stays
+# valid until the strip is factory-reset (legacy firmware cannot unpair).
+nanoleaf_creds.json

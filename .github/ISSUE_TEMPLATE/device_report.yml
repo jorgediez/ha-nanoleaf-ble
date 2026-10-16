@@ -1,0 +1,45 @@
+name: Device report
+description: Tell us how the integration does with your Nanoleaf device.
+labels: [compatibility]
+body:
+  - type: input
+    id: model
+    attributes:
+      label: Device model
+      description: The model code (NL55, NL45, NL68, NL62, NL71, ...) and the product name.
+      placeholder: NL55 Essentials Lightstrip
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware version
+      description: Shown by the "Firmware" diagnostic sensor, or in the Nanoleaf app.
+    validations:
+      required: true
+  - type: input
+    id: advertisement
+    attributes:
+      label: Raw advertisement
+      description: >-
+        The manufacturer data for company 0x080B, as hex. Settings → System →
+        Hardware → ⋮ → Bluetooth → Advertisement monitor shows it, and so do
+        the integration's diagnostics.
+  - type: dropdown
+    id: result
+    attributes:
+      label: Does it work?
+      options:
+        - Everything works
+        - Partially (details below)
+        - Not discovered / doesn't pair
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: >-
+        What works and what doesn't (pairing, on/off, colour, brightness, scenes,
+        community scenes, restore after power loss ...). Attaching the
+        diagnostics helps.
