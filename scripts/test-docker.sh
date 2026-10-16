@@ -53,6 +53,9 @@ for name in "${targets[@]}"; do
     printf '%s\n' "$requirements" >"$context/requirements.txt"
     cat >"$context/Dockerfile" <<EOF
 FROM python:$python-slim
+# HA 2025.3 pins ciso8601 and lru-dict releases without Python 3.13 wheels, so
+# pip builds them from source. CI's runners have a compiler; the slim image not.
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev     && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir --root-user-action=ignore -r /tmp/requirements.txt
 EOF
