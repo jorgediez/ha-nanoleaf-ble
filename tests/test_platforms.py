@@ -396,3 +396,54 @@ async def test_firmware_5_has_no_scene_entities(
         await entry.runtime_data.async_play_effect("x")
     assert err.value.translation_key == "scenes_unsupported"
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_management_entities_are_configuration(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """They live in the Configuration card, apart from the light."""
+    registry = er.async_get(hass)
+    config = {
+        (e.domain, e.unique_id.removeprefix(f"{init_integration.entry_id}_"))
+        for e in er.async_entries_for_config_entry(registry, init_integration.entry_id)
+        if e.entity_category is er.EntityCategory.CONFIG
+    }
+    assert config == {
+        ("switch", "power_loss_recovery"),
+        ("button", "restore_default_scenes"),
+        ("button", "community_preview"),
+        ("button", "community_save"),
+        ("button", "community_add_to_strip"),
+        ("button", "scene_add_to_strip"),
+        ("button", "scene_remove_from_strip"),
+        ("button", "scene_delete_from_library"),
+        ("select", "community_scene"),
+        ("select", "scene"),
+        ("text", "community_search"),
+    }
+    light = registry.async_get(entity_id(hass, init_integration, "light", None))
+    assert light.entity_category is None
+
+
+async def test_scene_to_manage_follows_the_playing_scene(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    select = entity_id(hass, init_integration, "select", "scene")
+    assert hass.states.get(select).state == "unknown"  # nothing playing
+    bluetooth.state.on, bluetooth.state.current = True, 252
+    await init_integration.runtime_data.async_refresh()
+    assert hass.states.get(select).state == "Cloud9"
+    assert hass.states.get(select).name.endswith("Scene to manage")
+
+    # Without a pick, the buttons act on the playing scene.
+    bluetooth.state.current = 247
+    await init_integration.runtime_data.async_refresh()
+    await _press(hass, init_integration, "scene_remove_from_strip")
+    assert 247 not in bluetooth.state.scenes
+
+    # A pick wins over the playing scene, and picking plays nothing.
+    await _select(hass, init_integration, "scene", "Cloud9")
+    bluetooth.state.current = 250
+    await init_integration.runtime_data.async_refresh()
+    assert hass.states.get(select).state == "Cloud9"
+    assert bluetooth.state.current == 250

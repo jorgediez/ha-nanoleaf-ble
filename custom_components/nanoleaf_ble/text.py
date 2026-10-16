@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from homeassistant.components.text import TextEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -28,6 +29,7 @@ class CommunitySearch(NanoleafEntity, TextEntity):
     """Setting the text runs a search; the results fill the Community scene select."""
 
     _attr_translation_key = "community_search"
+    _attr_entity_category = EntityCategory.CONFIG
     _attr_native_max = 100
 
     def __init__(self, coordinator: NanoleafCoordinator) -> None:

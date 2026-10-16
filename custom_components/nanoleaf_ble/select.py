@@ -1,12 +1,15 @@
 """Pick a community search result, or a scene to manage.
 
 The buttons next to each select act on what it points at, so scenes can be
-browsed, previewed, saved and stored from the device page without YAML.
+browsed, previewed, saved and stored from the device page without YAML. They
+are configuration entities: they sit in the device page's Configuration card,
+apart from the light, and stay off auto-generated dashboards.
 """
 
 from __future__ import annotations
 
 from homeassistant.components.select import SelectEntity
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -46,6 +49,7 @@ class CommunitySceneSelect(NanoleafEntity, SelectEntity):
     """The results of the last community search."""
 
     _attr_translation_key = "community_scene"
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: NanoleafCoordinator) -> None:
         """Initialise the select."""
@@ -71,9 +75,14 @@ class CommunitySceneSelect(NanoleafEntity, SelectEntity):
 
 
 class SceneSelect(NanoleafEntity, SelectEntity):
-    """Every scene: those on the strip, then those in the library."""
+    """Which scene the management buttons act on.
 
-    _attr_translation_key = "scene"
+    Lists every scene: those on the strip, then those in the library. Picking
+    one plays nothing; until one is picked it shows the scene playing.
+    """
+
+    _attr_translation_key = "scene_to_manage"
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(self, coordinator: NanoleafCoordinator) -> None:
         """Initialise the select."""
@@ -86,9 +95,8 @@ class SceneSelect(NanoleafEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return the selected scene, if it still exists."""
-        selected = self.coordinator.scene_selected
-        return selected if selected in self.coordinator.effects else None
+        """Return the picked scene, or the one playing."""
+        return self.coordinator.managed_scene
 
     async def async_select_option(self, option: str) -> None:
         """Point at a scene."""
