@@ -173,6 +173,34 @@ async def async_connect(
     return client, NanoleafDevice(client, advertisement, name=local_name)
 
 
+async def async_probe(
+    hass: HomeAssistant,
+    address: str,
+    advertisement: AdvertisementInfo,
+    local_name: str,
+    secret: str | Credentials,
+) -> Credentials:
+    """Pair with a setup code, or log in with credentials; return the credentials.
+
+    The device information is read too, to show the session really works.
+    Raise NanoleafError (or a subclass) when any of it fails.
+    """
+    client, device = await async_connect(hass, address, advertisement, local_name)
+    try:
+        if isinstance(secret, Credentials):
+            credentials = secret
+            await device.login(credentials)
+        else:
+            credentials = await device.pair(secret)
+        await device.device_information()
+        return credentials
+    finally:
+        try:
+            await client.disconnect()
+        except (BleakError, TimeoutError, OSError) as exc:
+            _LOGGER.debug("disconnect after probe failed: %s", exc)
+
+
 class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
     """Keeps the connection to one strip and polls its state."""
 
@@ -389,6 +417,34 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             except (BleakError, TimeoutError, OSError) as exc:
                 _LOGGER.debug("disconnect failed: %s", exc)
             self._disconnected_at = time.monotonic()
+
+    async def async_probe(self, secret: str | Credentials) -> Credentials:
+        """Check new credentials (reauth, reconfigure) on the strip's only link.
+
+        A second connection beside this one breaks both: the proxy answers
+        GATT error 131 and drops the link. So this link closes for the check,
+        and reconnects after it (a successful check also reloads the entry).
+        """
+        async with self._connect_lock:
+            self._cancel_reconnect_timer()
+            await self._async_drop_connection()
+            wait = RECONNECT_DELAY - (time.monotonic() - self._disconnected_at)
+            if wait > 0:
+                await asyncio.sleep(wait)
+            try:
+                return await async_probe(
+                    self.hass,
+                    self.address,
+                    self.advertisement,
+                    self.local_name,
+                    secret,
+                )
+            finally:
+                self._disconnected_at = time.monotonic()
+                if not self._closing:
+                    self._reconnect_timer = async_call_later(
+                        self.hass, RECONNECT_DELAY, self._async_reconnect_now
+                    )
 
     async def async_disconnect(self) -> None:
         """Close the session and the link (unload, Home Assistant stopping)."""
