@@ -151,6 +151,44 @@ async def test_token_refused_during_a_poll(
     assert [flow["context"]["source"] for flow in flows] == ["reauth"]
 
 
+async def test_one_refusal_is_retried_on_a_fresh_connection(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """A refusal the strip does not repeat does not ask the user to pair again."""
+    coordinator = _coordinator(init_integration)
+    connections = bluetooth.connections
+    bluetooth.queued.append(FakeLegacyStrip(bluetooth.state, tokens=set()))
+    await bluetooth.connected.disconnect()
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert coordinator.connected
+    assert coordinator.last_update_success
+    assert bluetooth.connections == connections + 2
+    assert bluetooth.overlaps == 0
+    assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+
+
+async def test_transient_error_during_login_does_not_start_reauth(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    coordinator = _coordinator(init_integration)
+
+    class Hiccup(FakeLegacyStrip):
+        async def read_gatt_char(self, char):
+            if self._phase == "token":
+                raise BleakError(
+                    "Bluetooth GATT Error address=X handle=142 error=133 "
+                    "description=Error"
+                )
+            return await super().read_gatt_char(char)
+
+    bluetooth.queued.append(Hiccup(bluetooth.state))
+    await bluetooth.connected.disconnect()
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+
+
 async def test_protocol_error_keeps_the_link(
     hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:

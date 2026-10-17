@@ -331,3 +331,45 @@ async def test_link_lost_during_login_is_not_a_refusal():
     device = NanoleafDevice(Dropping(), NL62, name=LOCAL_NAME)
     with pytest.raises(NanoleafConnectionError):
         await device.login(Credentials(TOKEN))
+
+
+class _GattErrorOnLogin(FakeLegacyStrip):
+    """A strip whose login exchange fails with a given error, link still up."""
+
+    def __init__(self, error: str) -> None:
+        super().__init__()
+        self.error = error
+
+    async def read_gatt_char(self, char):
+        if char == "6d2adfda-9aea-11ea-bb37-0242ac130002" and self._phase == "token":
+            raise BleakError(self.error)
+        return await super().read_gatt_char(char)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        "Bluetooth GATT Error address=X handle=142 error=133 description=Error",
+        "Bluetooth GATT Error address=X handle=142 error=131 description=Database full",
+        "[org.bluez.Error.Failed] Operation failed with ATT error: 0x0e",
+        "Not connected",
+    ],
+)
+async def test_transient_gatt_error_during_login_is_not_a_refusal(error):
+    """A proxy hiccup must not ask the user to pair again."""
+    device = NanoleafDevice(_GattErrorOnLogin(error), NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafConnectionError):
+        await device.login(Credentials(TOKEN))
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        "Bluetooth GATT Error address=X handle=142 error=130 description=Wrong state",
+        "[org.bluez.Error.Failed] Operation failed with ATT error: 0x82",
+    ],
+)
+async def test_refusal_codes_from_a_proxy_or_a_local_adapter(error):
+    device = NanoleafDevice(_GattErrorOnLogin(error), NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafAuthError):
+        await device.login(Credentials(TOKEN))

@@ -414,22 +414,39 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             if self.connected and self.device is not None:
                 return self.device
             await self._async_drop_connection()
-            wait = RECONNECT_DELAY - (time.monotonic() - self._disconnected_at)
-            if wait > 0:
-                await asyncio.sleep(wait)
-            client, device = await async_connect(
-                self.hass,
-                self.address,
-                self.advertisement,
-                self.local_name,
-                self._on_disconnected,
-            )
-            self._client = client
-            try:
-                await device.login(credentials_from_entry(dict(self.config_entry.data)))
-            except NanoleafError:
-                await self._async_drop_connection()
-                raise
+            # A refusal is checked once more on a fresh connection before it
+            # is reported: asking to pair again stops the entry, so a hiccup
+            # mistaken for a refusal would cost far more than one reconnect.
+            for attempt in (1, 2):
+                wait = RECONNECT_DELAY - (time.monotonic() - self._disconnected_at)
+                if wait > 0:
+                    await asyncio.sleep(wait)
+                client, device = await async_connect(
+                    self.hass,
+                    self.address,
+                    self.advertisement,
+                    self.local_name,
+                    self._on_disconnected,
+                )
+                self._client = client
+                try:
+                    await device.login(
+                        credentials_from_entry(dict(self.config_entry.data))
+                    )
+                except NanoleafAuthError as exc:
+                    await self._async_drop_connection()
+                    if attempt == 2:
+                        raise
+                    _LOGGER.debug(
+                        "%s: login refused (%s); retrying on a fresh connection",
+                        self.config_entry.title,
+                        exc,
+                    )
+                    continue
+                except NanoleafError:
+                    await self._async_drop_connection()
+                    raise
+                break
             self.device = device
             self._checked_scenes.clear()
             self.async_update_listeners()
