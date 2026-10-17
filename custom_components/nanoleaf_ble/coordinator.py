@@ -50,6 +50,7 @@ from .const import (
     DOMAIN,
     POWER_LOSS_POLL_EVERY,
     RECONNECT_DELAY,
+    REFRESH_AFTER_TURN_ON,
 )
 from .lib import (
     MAX_SCENES,
@@ -235,6 +236,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         self._connect_lock = asyncio.Lock()
         self._disconnected_at = 0.0
         self._reconnect_timer: CALLBACK_TYPE | None = None
+        self._refresh_timer: CALLBACK_TYPE | None = None
         self._closing = False
 
         self.device_information: DeviceInformation | None = None
@@ -387,6 +389,25 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             self._reconnect_timer()
             self._reconnect_timer = None
 
+    @callback
+    def _async_refresh_soon(self) -> None:
+        """Poll shortly, to learn what the strip resumed after switching on."""
+        self._cancel_refresh_timer()
+        self._refresh_timer = async_call_later(
+            self.hass, REFRESH_AFTER_TURN_ON, self._async_refresh_now
+        )
+
+    @callback
+    def _async_refresh_now(self, _now: Any) -> None:
+        self._refresh_timer = None
+        if not self._closing:
+            self.hass.async_create_task(self.async_refresh())
+
+    def _cancel_refresh_timer(self) -> None:
+        if self._refresh_timer is not None:
+            self._refresh_timer()
+            self._refresh_timer = None
+
     async def _async_ensure_connected(self) -> NanoleafDevice:
         """Return a logged-in session, connecting first if needed."""
         async with self._connect_lock:
@@ -460,6 +481,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         """Close the session and the link (unload, Home Assistant stopping)."""
         self._closing = True
         self._cancel_reconnect_timer()
+        self._cancel_refresh_timer()
         if self.device is not None and self.connected:
             try:
                 await self.device.end_session()
@@ -776,6 +798,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         if self.data is None:
             return
         light = self.data.light
+        if on and not light.on and hs_colour is None and colour_temperature is None:
+            self._async_refresh_soon()
         light = replace(
             light,
             on=light.on if on is None else on,
