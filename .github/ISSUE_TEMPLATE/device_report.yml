@@ -6,7 +6,7 @@ body:
     id: model
     attributes:
       label: Device model
-      description: The model code (NL55, NL45, NL68, NL62, NL71, ...) and the product name.
+      description: The model code (NL55, NL45, NL67, NL68, NL53, NL62, NL71, ...) and the product name.
       placeholder: NL55 Essentials Lightstrip
     validations:
       required: true

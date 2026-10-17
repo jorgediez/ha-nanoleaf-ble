@@ -125,8 +125,28 @@ async def test_cannot_connect_then_recover(
     assert result["errors"] == {"base": "cannot_connect"}
 
 
+async def test_unverified_models_are_discovered(
+    hass: HomeAssistant, bluetooth: Bluetooth
+) -> None:
+    """The NL68's Matter Essentials siblings reach the pair form."""
+    for model in ("NL67", "NL53", "NL54", "NL65", "NL70"):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": SOURCE_BLUETOOTH},
+            data=make_service_info(advertisement_bytes(model, (1, 2, 3))),
+        )
+        assert result["type"] is FlowResultType.FORM, model
+        assert result["step_id"] == "pair"
+        hass.config_entries.flow.async_abort(result["flow_id"])
+
+
 async def test_unsupported_model(hass: HomeAssistant, bluetooth: Bluetooth) -> None:
-    for data in (advertisement_bytes("NL71", (2, 0, 10)), b"NL"):
+    # A 1D strip and a Sense+ switch: their commands are not implemented.
+    for data in (
+        advertisement_bytes("NL71", (2, 0, 10)),
+        advertisement_bytes("NL43", (1, 0, 0)),
+        b"NL",
+    ):
         result = await hass.config_entries.flow.async_init(
             DOMAIN,
             context={"source": SOURCE_BLUETOOTH},

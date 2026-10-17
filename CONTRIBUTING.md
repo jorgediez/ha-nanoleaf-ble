@@ -31,6 +31,9 @@ how to report it privately.
 
 - **NL55, NL68 and NL45 owners**: a device report, even "everything works",
   confirms support.
+- **Matter Essentials owners** (NL67 A19, and the NL53, NL54, NL65 and NL70:
+  BR30, GU10, Downlight, Ceiling lamp): these are set up as *unverified*. A
+  device report tells us they work, and which code is which product.
 - **Firmware 5.0.0 and later**: the LTPDUv3 protocol is implemented from the
   app's code but has never met a real device. A debug log of pairing is gold.
   Its scene format (Effects V2) is not implemented yet.

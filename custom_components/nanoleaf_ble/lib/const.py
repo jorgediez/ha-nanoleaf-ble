@@ -23,6 +23,19 @@ SUPPORTED_MODELS: Final[dict[str, str]] = {
     "NL68": "Nanoleaf Essentials Lightstrip (Matter)",
 }
 
+#: The NL68's Matter Essentials siblings: the same protocol and the same code
+#: path, but nobody has reported on one yet. They are discovered and set up like
+#: the others, flagged as unverified. The app's code does not say which of
+#: NL53/NL54/NL65/NL70 is the BR30, GU10, Downlight or Ceiling lamp, so those
+#: keep their model code in the name.
+UNVERIFIED_MODELS: Final[dict[str, str]] = {
+    "NL67": "Nanoleaf Essentials A19 (Matter)",
+    "NL53": "Nanoleaf Essentials NL53",
+    "NL54": "Nanoleaf Essentials NL54",
+    "NL65": "Nanoleaf Essentials NL65",
+    "NL70": "Nanoleaf Essentials NL70",
+}
+
 #: Matter Essentials. On LTPDUv3 these use the 512-bit SRP group.
 MATTER_ESSENTIALS_MODELS: Final = frozenset(
     {"NL67", "NL68", "NL53", "NL54", "NL65", "NL70", "SQUB01", "SQUB03"}

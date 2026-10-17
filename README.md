@@ -18,8 +18,9 @@ about 200 ms, and polls that connection to pick up changes made in the app.
 
 Developed and verified on a **Secretlab MAGRGB (NL62)**, firmware 1.6.49.
 
-> **Testers wanted.** If you have an **Essentials Lightstrip (NL55 or NL68)** or
-> an **Essentials A19 bulb (NL45)**, please tell us how it goes — a
+> **Testers wanted.** If you have an **Essentials Lightstrip (NL55 or NL68)**,
+> an **Essentials A19 bulb (NL45 or NL67)**, or a Matter Essentials **BR30,
+> GU10, Downlight or Ceiling lamp**, please tell us how it goes — a
 > [device report][device-report] with the diagnostics attached takes two
 > minutes, and is how support for your model gets confirmed.
 
@@ -53,9 +54,17 @@ from Home Assistant without taking a slot — and no Thread border router.
 | NL55 | Essentials Lightstrip | Should work — **testers wanted** |
 | NL68 | Essentials Lightstrip (Matter) | Should work — **testers wanted** |
 | NL45 | Essentials A19 bulb | Should work — **testers wanted** |
+| NL67 | Essentials A19 bulb (Matter) | **Unverified**: same protocol as the NL68, never reported on |
+| NL53, NL54, NL65, NL70 | Essentials BR30, GU10, Downlight, Ceiling lamp (Matter) | **Unverified**: same protocol as the NL68, never reported on |
 | Any of the above on firmware **5.0.0 or later** | | **Experimental**: on/off, brightness, colour and identify only (see below) |
 
-Other Nanoleaf devices are not supported. If you have a **1D device**
+Unverified models are discovered and set up like the others, with a repair
+notice that asks for a [device report][device-report]. The app's code does not
+say which of NL53, NL54, NL65 and NL70 is which product, so those keep their
+model code in the device name.
+
+Other Nanoleaf devices, Sense+ switches and buttons included, are not supported.
+If you have a **1D device**
 (NL71, NL72, NL73, NL75, NL77 — string lights, outdoor and Wi-Fi strips), they
 speak a close relative of this protocol and we would love help getting them
 working: open a [device report][device-report] or see

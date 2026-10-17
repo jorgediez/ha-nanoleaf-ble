@@ -213,3 +213,44 @@ async def test_v2_strip(hass: HomeAssistant, bluetooth: Bluetooth) -> None:
     assert await hass.config_entries.async_setup(entry.entry_id)
     assert entry.runtime_data.protocol == "legacy v2"
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_unverified_model(hass: HomeAssistant, bluetooth: Bluetooth) -> None:
+    """A Matter Essentials sibling sets up like the NL68, with a repair notice."""
+    bluetooth.queued = [FakeLegacyStrip(bluetooth.state, v2=True)]
+    bluetooth.service_info = make_service_info(advertisement_bytes("NL53", (1, 2, 3)))
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Nanoleaf Essentials NL53 BE3A",
+        unique_id=bluetooth.service_info.address,
+        data=entry_data(model="NL53", firmware="1.2.3"),
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.runtime_data.protocol == "legacy v2"
+    issue = ir.async_get(hass).async_get_issue(
+        DOMAIN, f"unverified_model_{entry.entry_id}"
+    )
+    assert issue.translation_placeholders["model"] == "NL53"
+    assert issue.translation_placeholders["device_report_url"].endswith(
+        "template=device_report.yml"
+    )
+
+    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert (
+        ir.async_get(hass).async_get_issue(DOMAIN, f"unverified_model_{entry.entry_id}")
+        is None
+    )
+
+
+async def test_verified_model_has_no_notice(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    assert (
+        ir.async_get(hass).async_get_issue(
+            DOMAIN, f"unverified_model_{init_integration.entry_id}"
+        )
+        is None
+    )
