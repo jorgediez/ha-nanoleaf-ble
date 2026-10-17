@@ -259,14 +259,22 @@ class FakeLegacyStrip(FakeClient):
         setup_code: str = SETUP_CODE,
         tokens: set[bytes] | None = None,
         accepts_pairings: bool = True,
+        silent_refusal: bool = False,
     ) -> None:
-        """Create a strip that knows a setup code and some tokens."""
+        """Create a strip that knows a setup code and some tokens.
+
+        With ``silent_refusal``, a bad token gets the same empty reply as a good
+        one, as the app's code says some models do, and the session then
+        answers nothing that decrypts.
+        """
         super().__init__()
         self.state = state or StripState()
         self.v2 = v2
         self.setup_code = setup_code
         self.tokens = {TOKEN} if tokens is None else tokens
         self.accepts_pairings = accepts_pairings
+        self.silent_refusal = silent_refusal
+        self._stale = False
         self._stream: SharedCTR | None = None
         self._setup_reply = b""
         self._encrypted_reply = b""
@@ -291,7 +299,11 @@ class FakeLegacyStrip(FakeClient):
                 reply = bytes([0x62, 0x44, *request[2:6], 0xFF]) + respond(
                     self.state, request[marker + 1 :], _COAP_METHODS[request[1]]
                 )
-            self._encrypted_reply = self._stream.xor(reply)
+            self._encrypted_reply = (
+                secrets.token_bytes(len(reply))
+                if self._stale
+                else self._stream.xor(reply)
+            )
         elif char == const.LEGACY_UNENCRYPTED_UUID:
             body = data if self.v2 else data[data.index(b"\xff", 6) + 1 :]
             self._plain_reply = respond(self.state, body, commands.Method.POST)
@@ -329,6 +341,8 @@ class FakeLegacyStrip(FakeClient):
                 f"Bluetooth GATT Error address={ADDRESS} handle=142 error=129 "
                 "description=Internal error"
             )
+        elif secret not in self.tokens and self.silent_refusal:
+            self._stale = True
         elif secret not in self.tokens:
             self._refusal = BleakError(
                 f"Bluetooth GATT Error address={ADDRESS} handle=142 error=130 "

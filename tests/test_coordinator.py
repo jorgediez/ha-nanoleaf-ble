@@ -106,14 +106,15 @@ async def test_command_fails_after_two_drops(
     broken = FakeLegacyStrip(bluetooth.state, tokens=bluetooth.tokens)
     broken.fail_next = BleakError("dropped again")
     bluetooth.queued = [broken]
-    # The reconnect logs in (two writes); fail on the command after it.
+    # The reconnect logs in (three writes: keys, token, the check read); fail on
+    # the command after it.
     original = broken.write_gatt_char
     calls = 0
 
     async def write(char, data, response=True):
         nonlocal calls
         calls += 1
-        if calls > 2:
+        if calls > 3:
             raise BleakError("dropped again")
         broken.fail_next = None
         await original(char, data, response)
@@ -187,6 +188,23 @@ async def test_transient_error_during_login_does_not_start_reauth(
     await coordinator.async_refresh()
     await hass.async_block_till_done()
     assert not hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+
+
+async def test_silently_refused_token_starts_reauth(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """A model that answers a stale token like a good one still gets a reauth."""
+    coordinator = _coordinator(init_integration)
+    bluetooth.queued.extend(
+        FakeLegacyStrip(bluetooth.state, tokens=set(), silent_refusal=True)
+        for _ in range(2)
+    )
+    await bluetooth.connected.disconnect()
+    await coordinator.async_refresh()
+    await hass.async_block_till_done()
+    assert not coordinator.last_update_success
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert [flow["context"]["source"] for flow in flows] == ["reauth"]
 
 
 async def test_protocol_error_keeps_the_link(
