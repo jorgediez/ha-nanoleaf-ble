@@ -98,6 +98,15 @@ Requires **Home Assistant 2025.3 or newer** and a Bluetooth adapter or an
 ESPHome Bluetooth proxy that can make active connections. There are no external
 Python dependencies.
 
+**An ESPHome proxy must scan actively.** The strip sends the data that
+identifies it only in its *scan response*, which a scanner receives only when it
+asks for it. A passively scanning proxy hears the strip but cannot tell what it
+is, so the strip is never discovered. In Home Assistant, set the proxy's
+**Bluetooth scanning mode** option to **Active (uses more device battery,
+fastest updates)**; the default, *Auto*, did not discover the strip in testing.
+This is separate from `bluetooth_proxy: active: true` in the proxy's YAML, which
+lets it make connections; both are needed.
+
 ### HACS (custom repository)
 
 [![Open your Home Assistant instance and open this repository in HACS.][my-hacs-badge]][my-hacs-url]
@@ -171,6 +180,17 @@ from Home Assistant, and after a power cut. A scene **in the library** lives in
 Home Assistant, is shared by all your strips, and plays as a *preview* — no slot
 needed, but the app does not know about it. You can move a library scene onto a
 strip at any time (*Add to strip*), and take it off again.
+
+* **Storing a scene plays it.** The strip starts a scene as soon as it is
+  stored; Home Assistant sends only the store command.
+* **The app shows stored scenes as "Effect N".** Names live in Home Assistant,
+  not on the strip, so the app cannot know them.
+* **Adding a community scene to the strip also saves it to the library.** The
+  library copy keeps its name if the strip is ever removed and added again, lets
+  you take it off the strip and put it back without downloading it again, and
+  makes it available to your other strips. To keep it on the strip only, press
+  *Delete from library* afterwards: the strip keeps its copy and its name, until
+  the entry is removed.
 
 Effect names follow the app: the built-in scenes by their names
 (Northern Lights, Cloud9, …), scenes the integration stored by the names you
@@ -307,8 +327,10 @@ actions:
 ## Troubleshooting
 
 * **The strip is not discovered.** It must be powered and in range of an
-  adapter or proxy that can connect (an ESPHome proxy needs
-  `bluetooth_proxy: active: true`). Discovery also stops once the strip is set
+  adapter or proxy that can connect. An ESPHome proxy needs both
+  `bluetooth_proxy: active: true` and its **Bluetooth scanning mode** set to
+  **Active**: the strip identifies itself only in its scan response (see
+  [Installation](#installation)). Discovery also stops once the strip is set
   up.
 * **"Could not connect".** All connection slots of the nearest proxy may be in
   use, or the strip is out of range. The strip sometimes refuses a connection
