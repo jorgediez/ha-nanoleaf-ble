@@ -108,7 +108,7 @@ class SceneSelect(NanoleafEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return the picked scene, or the one playing."""
+        """Return the picked scene; unknown until one is picked."""
         managed = self.coordinator.managed_scene
         for label, name in scene_labels(self.coordinator).items():
             if name == managed:

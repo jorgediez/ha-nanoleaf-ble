@@ -697,14 +697,10 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
     def managed_scene(self) -> str | None:
         """Return the scene the management buttons act on.
 
-        The one picked in "Scene to manage" while it still exists; otherwise
-        the scene playing, so the select never looks empty while one plays.
+        Only the one picked in "Scene to manage", while it still exists: never
+        the scene playing, so no button acts on a scene nobody picked.
         """
-        effects = self.effects
-        if self.scene_selected in effects:
-            return self.scene_selected
-        playing = self.current_effect
-        return playing if playing in effects else None
+        return self.scene_selected if self.scene_selected in self.effects else None
 
     def strip_scene_id(self, name: str) -> int:
         """Return the strip scene an effect name refers to."""
