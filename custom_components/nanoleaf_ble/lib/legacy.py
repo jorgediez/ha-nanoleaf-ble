@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from typing import Protocol
 
 from bleak.exc import BleakError
@@ -43,6 +44,15 @@ _TLV_SETUP_CODE = 0x03
 
 _X25519_KEY_LENGTH = 32
 
+#: GATT errors the NL62 refuses a wrong setup code or token with: 129
+#: "Internal error" (wrong code) and 130 "Wrong state" (unknown token). Any
+#: other error on that exchange is a link problem, not a refusal.
+_REFUSAL_CODES = frozenset({0x81, 0x82})
+
+#: How the error code reaches us: an ESPHome proxy says "error=130", BlueZ
+#: says "ATT error: 0x82".
+_GATT_ERROR_CODE = re.compile(r"\berror=(\d+)\b|ATT error: 0x([0-9a-fA-F]{2})\b")
+
 
 class GattClient(Protocol):
     """The part of BleakClient the protocols use."""
@@ -58,6 +68,17 @@ class GattClient(Protocol):
     @property
     def is_connected(self) -> bool:
         """Return whether the link is up."""
+
+
+def _gatt_error_code(exc: BaseException) -> int | None:
+    """Return the GATT error code in an error or the errors that caused it."""
+    seen: BaseException | None = exc
+    while seen is not None:
+        if match := _GATT_ERROR_CODE.search(str(seen)):
+            decimal, hexadecimal = match.groups()
+            return int(decimal) if decimal else int(hexadecimal, 16)
+        seen = seen.__cause__ or seen.__context__
+    return None
 
 
 class SharedCTR:
@@ -143,10 +164,12 @@ class LegacySession:
             )
         except BleakError as exc:
             # The NL62 refuses a wrong setup code or token with a GATT error on
-            # this exchange (seen: 129 "Internal error", 130 "Wrong state"),
-            # not with the empty reply the app's code suggests. With the link
-            # still up, the device answered: that is a refusal.
-            if not self._client.is_connected:
+            # this exchange, not with the empty reply the app's code suggests.
+            # Only the codes it refuses with count, and only with the link
+            # still up: a proxy's transient error must not cost the pairing.
+            if not self._client.is_connected or _gatt_error_code(exc) not in (
+                _REFUSAL_CODES
+            ):
                 raise
             raise NanoleafAuthError(
                 f"the device refused the {'token' if token else 'setup code'} ({exc})"
