@@ -11,7 +11,7 @@ from custom_components.nanoleaf_ble.coordinator import NanoleafCoordinator
 from custom_components.nanoleaf_ble.lib import default_scenes
 from custom_components.nanoleaf_ble.library import StripSceneRecord
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -43,6 +43,34 @@ async def test_link_loss_reconnects(
     await coordinator.async_refresh()
     assert coordinator.connected
     assert bluetooth.connections > connections
+
+
+def _connection_state(hass: HomeAssistant, entry: MockConfigEntry) -> str:
+    entity_id = er.async_get(hass).async_get_entity_id(
+        "binary_sensor", DOMAIN, f"{entry.entry_id}_connection"
+    )
+    return hass.states.get(entity_id).state
+
+
+async def test_connection_sensor_follows_the_link(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """Off as soon as the link drops, without waiting for a poll; never unavailable."""
+    coordinator = _coordinator(init_integration)
+    assert _connection_state(hass, init_integration) == STATE_ON
+
+    bluetooth.in_range = False
+    await bluetooth.connected.disconnect()
+    assert _connection_state(hass, init_integration) == STATE_OFF
+    # The next poll cannot reconnect: the rest goes unavailable, the sensor not.
+    await coordinator.async_refresh()
+    assert not coordinator.last_update_success
+    assert _light_state(hass, init_integration).state == STATE_UNAVAILABLE
+    assert _connection_state(hass, init_integration) == STATE_OFF
+
+    bluetooth.in_range = True
+    await coordinator.async_refresh()
+    assert _connection_state(hass, init_integration) == STATE_ON
 
 
 async def test_unavailable_while_out_of_range(

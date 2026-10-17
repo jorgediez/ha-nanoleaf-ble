@@ -363,6 +363,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         if self._closing:
             return
         _LOGGER.debug("%s: Bluetooth link lost", self.config_entry.title)
+        # The connection sensor shows it now, not at the next poll.
+        self.async_update_listeners()
         # Reconnect soon rather than at the next poll, so commands stay quick.
         self._cancel_reconnect_timer()
         self._reconnect_timer = async_call_later(
@@ -404,6 +406,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                 raise
             self.device = device
             self._checked_scenes.clear()
+            self.async_update_listeners()
             _LOGGER.debug(
                 "%s: connected (%s)", self.config_entry.title, device.protocol
             )
@@ -417,6 +420,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             except (BleakError, TimeoutError, OSError) as exc:
                 _LOGGER.debug("disconnect failed: %s", exc)
             self._disconnected_at = time.monotonic()
+            if not self._closing:
+                self.async_update_listeners()
 
     async def async_probe(self, secret: str | Credentials) -> Credentials:
         """Check new credentials (reauth, reconfigure) on the strip's only link.

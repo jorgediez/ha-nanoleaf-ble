@@ -114,6 +114,9 @@
       "community_scene": { "name": "Community scene" },
       "scene_to_manage": { "name": "Scene to manage" }
     },
+    "binary_sensor": {
+      "connection": { "name": "Connection" }
+    },
     "sensor": {
       "free_scene_slots": { "name": "Free scene slots" },
       "scenes_on_strip": { "name": "Scenes on strip" },
