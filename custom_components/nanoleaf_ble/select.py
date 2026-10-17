@@ -74,11 +74,24 @@ class CommunitySceneSelect(NanoleafEntity, SelectEntity):
         self.coordinator.async_update_listeners()
 
 
+def scene_labels(coordinator: NanoleafCoordinator) -> dict[str, str]:
+    """Return each option of "Scene to manage" with the scene it stands for.
+
+    The option marks where the scene lives, e.g. "Aurora [strip + library]",
+    so it is clear which management buttons apply.
+    """
+    return {
+        f"{name} [{location}]": name
+        for name, location in coordinator.scene_locations.items()
+    }
+
+
 class SceneSelect(NanoleafEntity, SelectEntity):
     """Which scene the management buttons act on.
 
-    Lists every scene: those on the strip, then those in the library. Picking
-    one plays nothing; until one is picked it shows the scene playing.
+    Lists every scene: those on the strip, then those in the library, each
+    marked with where it lives. Picking one plays nothing; until one is
+    picked it shows the scene playing.
     """
 
     _attr_translation_key = "scene_to_manage"
@@ -90,15 +103,19 @@ class SceneSelect(NanoleafEntity, SelectEntity):
 
     @property
     def options(self) -> list[str]:
-        """Return the scene names."""
-        return list(self.coordinator.effects)
+        """Return the scene names, marked with where each scene lives."""
+        return list(scene_labels(self.coordinator))
 
     @property
     def current_option(self) -> str | None:
         """Return the picked scene, or the one playing."""
-        return self.coordinator.managed_scene
+        managed = self.coordinator.managed_scene
+        for label, name in scene_labels(self.coordinator).items():
+            if name == managed:
+                return label
+        return None
 
     async def async_select_option(self, option: str) -> None:
         """Point at a scene."""
-        self.coordinator.scene_selected = option
+        self.coordinator.scene_selected = scene_labels(self.coordinator)[option]
         self.coordinator.async_update_listeners()

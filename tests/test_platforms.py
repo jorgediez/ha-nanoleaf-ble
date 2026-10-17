@@ -174,7 +174,7 @@ async def test_identify(
 async def test_restore_default_scenes(
     hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:
-    await _select(hass, init_integration, "scene", "Dark Knight")
+    await _select(hass, init_integration, "scene", "Dark Knight [strip]")
     await _press(hass, init_integration, "scene_remove_from_strip")
     assert 247 not in bluetooth.state.scenes
     await _press(hass, init_integration, "restore_default_scenes")
@@ -201,7 +201,7 @@ async def test_restore_when_full(
 async def test_factory_scenes_are_never_deleted(
     hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:
-    await _select(hass, init_integration, "scene", "Northern Lights")
+    await _select(hass, init_integration, "scene", "Northern Lights [strip]")
     with pytest.raises(ServiceValidationError) as err:
         await _press(hass, init_integration, "scene_remove_from_strip")
     assert err.value.translation_key == "builtin_protected"
@@ -317,35 +317,38 @@ async def test_scene_management(
     store.async_add("Mine", default_scenes("NL62")[245])
     await hass.async_block_till_done()
     select = entity_id(hass, init_integration, "select", "scene")
-    assert "Mine" in hass.states.get(select).attributes["options"]
+    assert "Mine [library]" in hass.states.get(select).attributes["options"]
 
-    await _select(hass, init_integration, "scene", "Mine")
-    assert hass.states.get(select).state == "Mine"
+    await _select(hass, init_integration, "scene", "Mine [library]")
+    assert hass.states.get(select).state == "Mine [library]"
     await _press(hass, init_integration, "scene_add_to_strip")
     assert 1 in bluetooth.state.scenes
+    # The pick follows the scene onto the strip.
+    assert hass.states.get(select).state == "Mine [strip + library]"
     with pytest.raises(ServiceValidationError) as err:
         await _press(hass, init_integration, "scene_add_to_strip")
     assert err.value.translation_key == "scene_already_on_strip"
 
     # Fill the strip, then adding another is refused before anything is sent.
     store.async_add("Other", default_scenes("NL62")[246])
-    await _select(hass, init_integration, "scene", "Other")
+    await _select(hass, init_integration, "scene", "Other [library]")
     await _press(hass, init_integration, "scene_add_to_strip")
     store.async_add("Third", default_scenes("NL62")[247])
-    await _select(hass, init_integration, "scene", "Third")
+    await _select(hass, init_integration, "scene", "Third [library]")
     with pytest.raises(HomeAssistantError) as err:
         await _press(hass, init_integration, "scene_add_to_strip")
     assert err.value.translation_key == "strip_full"
 
-    await _select(hass, init_integration, "scene", "Mine")
+    await _select(hass, init_integration, "scene", "Mine [strip + library]")
     await _press(hass, init_integration, "scene_remove_from_strip")
+    assert hass.states.get(select).state == "Mine [library]"
     assert 1 not in bluetooth.state.scenes
     await _press(hass, init_integration, "scene_delete_from_library")
     assert store.find("Mine") is None
     assert hass.states.get(select).state == "unknown"
 
     # A built-in scene is not in the library.
-    await _select(hass, init_integration, "scene", "Cloud9")
+    await _select(hass, init_integration, "scene", "Cloud9 [strip]")
     with pytest.raises(ServiceValidationError) as err:
         await _press(hass, init_integration, "scene_delete_from_library")
     assert err.value.translation_key == "scene_not_in_library"
@@ -357,7 +360,7 @@ async def test_strip_full_reply(
     """The strip itself refuses, though the integration counted a free slot."""
     bluetooth.state.capacity = 10
     hass.data[DATA_STORE].async_add("Mine", default_scenes("NL62")[245])
-    await _select(hass, init_integration, "scene", "Mine")
+    await _select(hass, init_integration, "scene", "Mine [library]")
     with pytest.raises(HomeAssistantError) as err:
         await _press(hass, init_integration, "scene_add_to_strip")
     assert err.value.translation_key == "strip_full"
@@ -434,7 +437,7 @@ async def test_scene_to_manage_follows_the_playing_scene(
     assert hass.states.get(select).state == "unknown"  # nothing playing
     bluetooth.state.on, bluetooth.state.current = True, 252
     await init_integration.runtime_data.async_refresh()
-    assert hass.states.get(select).state == "Cloud9"
+    assert hass.states.get(select).state == "Cloud9 [strip]"
     assert hass.states.get(select).name.endswith("Scene to manage")
 
     # Without a pick, the buttons act on the playing scene.
@@ -444,8 +447,30 @@ async def test_scene_to_manage_follows_the_playing_scene(
     assert 247 not in bluetooth.state.scenes
 
     # A pick wins over the playing scene, and picking plays nothing.
-    await _select(hass, init_integration, "scene", "Cloud9")
+    await _select(hass, init_integration, "scene", "Cloud9 [strip]")
     bluetooth.state.current = 250
     await init_integration.runtime_data.async_refresh()
-    assert hass.states.get(select).state == "Cloud9"
+    assert hass.states.get(select).state == "Cloud9 [strip]"
     assert bluetooth.state.current == 250
+
+
+async def test_scene_to_manage_marks_where_scenes_live(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """Each option says strip, library or both, so the buttons make sense."""
+    store = hass.data[DATA_STORE]
+    store.async_add("Mine", default_scenes("NL62")[245])
+    await hass.async_block_till_done()
+    select = entity_id(hass, init_integration, "select", "scene")
+    options = hass.states.get(select).attributes["options"]
+    assert "Cloud9 [strip]" in options
+    assert "Mine [library]" in options
+
+    await _select(hass, init_integration, "scene", "Mine [library]")
+    await _press(hass, init_integration, "scene_add_to_strip")
+    assert "Mine [strip + library]" in hass.states.get(select).attributes["options"]
+
+    # Deleting the library entry leaves the strip's copy, now strip only.
+    await _press(hass, init_integration, "scene_delete_from_library")
+    assert 1 in bluetooth.state.scenes
+    assert hass.states.get(select).state == "Mine [strip]"
