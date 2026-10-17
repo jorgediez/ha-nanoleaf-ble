@@ -91,6 +91,11 @@ _LOGGER = logging.getLogger(__name__)
 TARGET_STRIP = "strip"
 TARGET_LIBRARY = "library"
 
+#: Where a scene lives, as "Scene to manage" marks it.
+LOCATION_STRIP = "strip"
+LOCATION_LIBRARY = "library"
+LOCATION_BOTH = "strip + library"
+
 
 @dataclass(frozen=True, slots=True)
 class NanoleafData:
@@ -610,6 +615,28 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             if item.id not in on_strip:
                 add(item.name, EffectTarget(TARGET_LIBRARY, item.id))
         return effects
+
+    @property
+    def scene_locations(self) -> dict[str, str]:
+        """Return every effect name with where the scene lives.
+
+        A strip scene counts as in the library too while its library entry
+        still exists; deleting that entry leaves the strip's copy alone.
+        """
+        records = self.store.strip_scenes(self.address)
+        locations: dict[str, str] = {}
+        for name, target in self.effects.items():
+            if target.kind == TARGET_LIBRARY:
+                locations[name] = LOCATION_LIBRARY
+            elif (
+                (record := records.get(int(target.ref)))
+                and record.library_id
+                and self.store.get(record.library_id) is not None
+            ):
+                locations[name] = LOCATION_BOTH
+            else:
+                locations[name] = LOCATION_STRIP
+        return locations
 
     @property
     def current_effect(self) -> str | None:
