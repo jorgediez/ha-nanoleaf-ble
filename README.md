@@ -41,7 +41,7 @@ from Home Assistant without taking a slot — and no Thread border router.
 | Community scenes | search, preview, save and store scenes from the Nanoleaf library, keeping their names |
 | Scene slots | stores and removes scenes, keeps track of the 12-scene limit |
 | Default scenes | names the built-in scenes, and writes the app's Secretlab defaults when missing |
-| Restore after power loss | a switch |
+| Restore on/off after power loss | a switch: after a power cut, a strip that was off stays off |
 | Identify | a button that blinks the strip |
 | Diagnostics | firmware, hardware, serial number, model, protocol, signal strength |
 
@@ -74,7 +74,7 @@ Elements, Lines) are Wi-Fi devices with their own core integration.
 * **Firmware 5.0.0 and later is experimental.** It speaks a newer protocol
   (LTPDUv3) that is implemented from the app's code but has never been tested on
   a real strip, and stores scenes in a different format that is not implemented.
-  Scenes and Restore after power loss are therefore not available there. A
+  Scenes and Restore on/off after power loss are therefore not available there. A
   repair notice says so.
 * **Legacy firmware cannot unpair.** Below firmware 5 the strip has no command
   to forget a controller, so removing the integration leaves its token valid on
@@ -144,7 +144,7 @@ If the strip is factory-reset, Home Assistant asks you to pair again.
 | Entity | |
 |---|---|
 | **Light** | on/off, brightness, HS colour (and colour temperature where the model has one), effects: the scenes on the strip, then the library scenes |
-| **Restore after power loss** (switch, config) | on: the strip comes back as it was after a power cut; off: it stays off |
+| **Restore on/off after power loss** (switch, config) | the app's *Restore last ON/OFF state*. On: after a power cut the strip comes back on or off, as it was. Off: it always comes back on. Either way a strip that was on resumes its colour or scene. A change made in the app shows up within 5 polls (75 s by default). |
 | **Identify** (button, diagnostic) | blinks the strip; needs no pairing |
 | **Restore default scenes** (button, config) | Secretlab only: writes back the app's default scenes that are missing |
 | **Community search** (text, config) | setting it searches the Nanoleaf community library |

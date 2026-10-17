@@ -551,9 +551,10 @@ The app's parser (`ng.d` DeviceInformationFormat) accepts three forms:
 The **model number** the app displays comes from the BLE advertisement (§1). For `NLM0` partner devices it's the sub-model at offset 19, here `NL62`.
 
 ### Power-loss recovery ("Retain On/Off")
-Whether the strip restores its last state after a power cut or comes back off.
+Whether the strip restores its last **on/off state** after a power cut. The app calls it *Restore last ON/OFF state of your lights before the power loss*.
+* **Behaviour (verified 2026-10-17 on the NL62, power cut of 30 s):** enabled → a strip that was off stays off, one that was on comes back on. Disabled → it always comes back on. When it comes back on, it resumes its last colour or scene either way.
 * **Where it applies:** Essentials (except Umbra Cono) and 1D devices with firmware ≥ `1.2.13` (Essentials) / `2.0.10` (1D), when the device doesn't use the newer "power-on settings" (`isRetainOnOffSupported`).
-* **Read:** POST `ci` with `09 02 00 01 00`. The reply value is `89 02 <len16> <b>`: `01` = enabled (restore last state), `00` = disabled.
+* **Read:** POST `ci` with `09 02 00 01 00`. The reply value is `89 02 <len16> <b>`: `01` = enabled (restore on/off state), `00` = disabled.
 * **Write:** POST `ci` with `09 01 00 01 <01|00>`.
 * **Verified:** read `01`, wrote `00` → read `00`, wrote `01` → read `01`.
 * **Other devices:** Nanoleaf panel devices use a JSON request instead (`GetPLRConfigRequest` / `SetPLRConfigRequest`). Firmware ≥ 5 exposes the `lb/0/plr` endpoint with `PowerLossRecovery` TLVs. Neither path is traced or tested.
@@ -613,7 +614,7 @@ Everything here is based on the verified behaviour of NL62 (legacy firmware). It
 | HS colour | `lb/0/hu` 0–360 + `lb/0/sa` 0–100, sent together |
 | Colour temperature | **not supported on NL62** (`ct` → status 4). On other Essentials use Kelvin, about 2127–6535 K. |
 | `effect_list` / `effect` | List `07 03`; names from §10 tables (built-ins) plus the integration's own name store (user scenes; names are **not** stored on the device). Activate with `07 06`, which also turns the light on. Current effect from `07 07`: `00` → no effect (static colour or off), `ff` → an unsaved preview (report e.g. "Preview" or none), else the scene ID. `07 07` reads `00` while off, but switching on resumes the previous scene (§7.3). |
-| Switch "Restore after power loss" | `09 02` read / `09 01` write (§13) |
+| Switch "Restore on/off after power loss" | `09 02` read / `09 01` write (§13) |
 | Button "Identify" | public identify (§3.3); no auth needed |
 | Diagnostics | `di`, firmware/model, RSSI |
 | Optional services | save/delete scene (`07 02`/`07 05`, mind the 12-scene limit and avoid IDs 244–254), clone from the cloud (§8) |

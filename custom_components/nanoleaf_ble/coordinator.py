@@ -806,7 +806,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             )
 
     async def async_set_power_loss_recovery(self, enabled: bool) -> None:
-        """Choose whether the strip restores its state after a power cut."""
+        """Choose whether the strip restores its on/off state after a power cut."""
         await self.async_run(lambda device: device.set_power_loss_recovery(enabled))
         self._async_set_data(power_loss_recovery=enabled)
 
