@@ -49,6 +49,7 @@ ENTITIES = [
     ("sensor", "model"),
     ("sensor", "protocol"),
     ("sensor", "rssi"),
+    ("binary_sensor", "connection"),
 ]
 
 COMMUNITY = [
@@ -389,6 +390,7 @@ async def test_firmware_5_has_no_scene_entities(
         ("sensor", "_model"),
         ("sensor", "_protocol"),
         ("sensor", "_rssi"),
+        ("binary_sensor", "_connection"),
     }
     light = er.async_get(hass).async_get_entity_id("light", DOMAIN, entry.entry_id)
     assert "effect_list" not in hass.states.get(light).attributes

@@ -43,7 +43,7 @@ from Home Assistant without taking a slot — and no Thread border router.
 | Default scenes | names the built-in scenes, and writes the app's Secretlab defaults when missing |
 | Restore on/off after power loss | a switch: after a power cut, a strip that was off stays off |
 | Identify | a button that blinks the strip |
-| Diagnostics | firmware, hardware, serial number, model, protocol, signal strength |
+| Diagnostics | connection, firmware, hardware, serial number, model, protocol, signal strength |
 
 ### Compatibility
 
@@ -153,6 +153,7 @@ If the strip is factory-reset, Home Assistant asks you to pair again.
 | **Scene to manage** (select, config) | which scene the buttons below act on: every scene on the strip, then in the library. Picking one plays nothing; until you pick one it shows the scene playing |
 | **Add to strip / Remove from strip / Delete from library** (buttons, config) | act on the scene to manage |
 | **Free scene slots**, **Scenes on strip** (sensors) | of the 12 |
+| **Connection** (binary sensor, diagnostic) | on while Home Assistant holds the Bluetooth link; turns off the moment the link drops, and stays available while the other entities are not |
 | **Firmware**, **Hardware version**, **Serial number**, **Model**, **Protocol**, **Signal strength** (diagnostic sensors) | signal strength is disabled by default |
 
 The scene and community entities are **configuration** entities: on the
