@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from bleak.exc import BleakError
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.nanoleaf_ble.const import (
     CONF_ADVANCED,
@@ -14,7 +17,11 @@ from custom_components.nanoleaf_ble.const import (
     CONF_TOKEN,
     DOMAIN,
 )
-from homeassistant.config_entries import SOURCE_BLUETOOTH, SOURCE_USER
+from homeassistant.config_entries import (
+    SOURCE_BLUETOOTH,
+    SOURCE_USER,
+    ConfigEntryState,
+)
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -247,6 +254,33 @@ async def test_reconfigure(
     assert config_entry.data[CONF_TOKEN] == other.hex()
     await hass.async_block_till_done()
     await hass.config_entries.async_unload(config_entry.entry_id)
+
+
+async def test_reconfigure_while_loaded_uses_one_link(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """The check closes the entry's link first: two at once break both."""
+    coordinator = init_integration.runtime_data
+    result = await init_integration.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_ADVANCED: {CONF_TOKEN: "0011223344556677"}}
+    )
+    assert result["errors"] == {"base": "invalid_token"}
+    assert bluetooth.overlaps == 0
+    # After a refused check the entry reconnects by itself.
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert coordinator.connected
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_ADVANCED: {CONF_TOKEN: TOKEN.hex()}}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+    assert bluetooth.overlaps == 0
+    assert init_integration.state is ConfigEntryState.LOADED
+    assert init_integration.runtime_data.connected
 
 
 async def test_reconfigure_out_of_range_uses_stored_details(

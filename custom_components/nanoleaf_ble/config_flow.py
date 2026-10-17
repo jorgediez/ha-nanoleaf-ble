@@ -12,18 +12,18 @@ from collections.abc import Mapping
 import logging
 from typing import Any
 
-from bleak.exc import BleakError
 import voluptuous as vol
 
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import (
     ConfigEntry,
+    ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlow,
 )
 from homeassistant.const import CONF_ADDRESS
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import section
 from homeassistant.helpers.selector import (
     NumberSelector,
@@ -46,7 +46,7 @@ from .const import (
     MAX_POLL_INTERVAL,
     MIN_POLL_INTERVAL,
 )
-from .coordinator import advertisement_from_entry, async_connect
+from .coordinator import NanoleafCoordinator, advertisement_from_entry, async_probe
 from .lib import (
     NANOLEAF_COMPANY_ID,
     AdvertisementInfo,
@@ -127,40 +127,19 @@ def _parse_input(
     return code, None, None
 
 
-async def async_probe(
-    hass: HomeAssistant,
-    address: str,
-    advertisement: AdvertisementInfo,
-    local_name: str,
-    secret: str | Credentials,
-) -> Credentials:
-    """Pair with a setup code, or log in with credentials; return the credentials.
-
-    The device information is read too, to show the session really works.
-    Raise NanoleafError (or a subclass) when any of it fails.
-    """
-    client, device = await async_connect(hass, address, advertisement, local_name)
-    try:
-        if isinstance(secret, Credentials):
-            credentials = secret
-            await device.login(credentials)
-        else:
-            credentials = await device.pair(secret)
-        await device.device_information()
-        return credentials
-    finally:
-        try:
-            await client.disconnect()
-        except (BleakError, TimeoutError, OSError) as exc:
-            _LOGGER.debug("disconnect after probe failed: %s", exc)
-
-
 def _error_key(exc: NanoleafError, with_token: bool) -> str:
     if isinstance(exc, NanoleafTooManyPairingsError):
         return "too_many_pairings"
     if isinstance(exc, NanoleafAuthError):
         return "invalid_token" if with_token else "invalid_auth"
     return "cannot_connect"
+
+
+def _loaded_coordinator(entry: ConfigEntry) -> NanoleafCoordinator | None:
+    """Return the entry's coordinator while it holds the strip's link."""
+    if entry.state is ConfigEntryState.LOADED:
+        return entry.runtime_data
+    return None
 
 
 class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -302,14 +281,14 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             code, credentials, error = _parse_input(user_input, advertisement.ltpdu_v3)
             if error is None:
+                secret = credentials or code or ""
                 try:
-                    credentials = await async_probe(
-                        self.hass,
-                        address,
-                        advertisement,
-                        local_name,
-                        credentials or code or "",
-                    )
+                    if (coordinator := _loaded_coordinator(entry)) is not None:
+                        credentials = await coordinator.async_probe(secret)
+                    else:
+                        credentials = await async_probe(
+                            self.hass, address, advertisement, local_name, secret
+                        )
                 except NanoleafError as exc:
                     _LOGGER.debug("pairing with %s failed: %s", address, exc)
                     error = _error_key(exc, code is None)

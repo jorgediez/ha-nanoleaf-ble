@@ -70,6 +70,9 @@ class Bluetooth:
         self.queued: list[Any] = []
         self.connect_error: Exception | None = None
         self.connections = 0
+        #: Connections opened while another was still up. A real strip behind
+        #: a proxy breaks both links then (GATT error 131, "Database full").
+        self.overlaps = 0
         self.connected: Any = None
         self.clients: list[Any] = []
 
@@ -106,6 +109,8 @@ def bluetooth(strip_state: StripState, mock_bluetooth: None) -> Generator[Blueto
         if bt.connect_error is not None:
             raise bt.connect_error
         bt.connections += 1
+        if any(client.is_connected for client in bt.clients):
+            bt.overlaps += 1
         fake = bt.new_strip()
         fake.disconnected_callback = disconnected_callback
         bt.connected = fake
