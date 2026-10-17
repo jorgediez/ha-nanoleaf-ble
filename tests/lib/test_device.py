@@ -373,3 +373,28 @@ async def test_refusal_codes_from_a_proxy_or_a_local_adapter(error):
     device = NanoleafDevice(_GattErrorOnLogin(error), NL62, name=LOCAL_NAME)
     with pytest.raises(NanoleafAuthError):
         await device.login(Credentials(TOKEN))
+
+
+async def test_login_checks_the_token_with_a_read():
+    """Models that answer a bad token like a good one are caught by the read."""
+    strip = FakeLegacyStrip(silent_refusal=True)
+    device = NanoleafDevice(strip, NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafAuthError, match="did not accept the token"):
+        await device.login(Credentials(bytes.fromhex("0011223344556677")))
+    assert not device.authenticated
+    device = NanoleafDevice(FakeLegacyStrip(silent_refusal=True), NL62, name=LOCAL_NAME)
+    await device.login(Credentials(TOKEN))
+    assert device.authenticated
+
+
+async def test_link_lost_during_the_token_check_is_not_a_refusal():
+    class Dropping(FakeLegacyStrip):
+        async def read_gatt_char(self, char):
+            if char == "6d2adda0-9aea-11ea-bb37-0242ac130002":
+                self.is_connected = False
+                raise BleakError("disconnected")
+            return await super().read_gatt_char(char)
+
+    device = NanoleafDevice(Dropping(), NL62, name=LOCAL_NAME)
+    with pytest.raises(NanoleafConnectionError):
+        await device.login(Credentials(TOKEN))

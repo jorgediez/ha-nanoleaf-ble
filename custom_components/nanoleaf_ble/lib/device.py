@@ -284,6 +284,23 @@ class NanoleafDevice:
         else:
             legacy = self._session
             await self._exchange(lambda: legacy.authenticate(token=credentials.token))
+            self.authenticated = True
+            # The NL62 refuses a bad token with a GATT error, but the app's code
+            # says other models answer it with the same empty reply as a good
+            # one. A read shows whether the session works: any answer for the
+            # endpoint means both sides share the keystream. If the read fails
+            # with the link still up, the token is what is wrong.
+            try:
+                if "di" not in await self._request(Method.GET, [("di", None)]):
+                    raise NanoleafProtocolError("no answer for di")
+            except NanoleafError as exc:
+                self.authenticated = False
+                self.broken = True
+                if not legacy.connected:
+                    raise
+                raise NanoleafAuthError(
+                    f"the device did not accept the token ({exc})"
+                ) from exc
         self.authenticated = True
 
     async def end_session(self) -> None:

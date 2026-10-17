@@ -178,13 +178,20 @@ class LegacySession:
             raise NanoleafTooManyPairingsError("the device accepts no more pairings")
         if token is not None:
             # A login is answered with nothing at all (verified on the NL62): the
-            # reply carries a token only when pairing.
+            # reply carries a token only when pairing. The app's code says other
+            # models answer a bad token the same way, so NanoleafDevice.login
+            # checks the session with a read.
             _LOGGER.debug("legacy session logged in")
             return token
         if not reply:
             raise NanoleafAuthError("the device refused the setup code")
         _LOGGER.debug("legacy session paired (%s-byte token)", len(reply))
         return reply
+
+    @property
+    def connected(self) -> bool:
+        """Return whether the link is up."""
+        return self._client.is_connected
 
     async def request(
         self, method: Method, commands: list[tuple[str, bytes | None]]
