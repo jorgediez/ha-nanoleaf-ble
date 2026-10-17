@@ -37,8 +37,9 @@ MAX_POLL_INTERVAL: Final = 300
 #: works (verified through an ESPHome proxy).
 RECONNECT_DELAY: Final = 2.0
 
-#: Power-loss recovery is a setting, not state; read it every this many polls.
-POWER_LOSS_POLL_EVERY: Final = 20
+#: Power-loss recovery is a setting, not state; read it every this many polls
+#: (75 s at the default interval), so a change in the app shows up soon enough.
+POWER_LOSS_POLL_EVERY: Final = 5
 
 #: The scene library and per-strip scene names, shared by every config entry.
 STORAGE_KEY: Final = DOMAIN

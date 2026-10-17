@@ -1,4 +1,4 @@
-"""Restore after power loss: whether the strip comes back as it was or off."""
+"""Restore on/off after power loss: whether a power cut keeps the strip off when it was off."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ async def async_setup_entry(
 
 
 class PowerLossRecoverySwitch(NanoleafEntity, SwitchEntity):
-    """On: after a power cut the strip restores its last state. Off: it stays off."""
+    """On: after a power cut the strip comes back on or off, as it was. Off: it always comes back on."""
 
     _attr_translation_key = "power_loss_recovery"
     _attr_entity_category = EntityCategory.CONFIG
@@ -50,13 +50,13 @@ class PowerLossRecoverySwitch(NanoleafEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return whether the strip restores its state after a power cut."""
+        """Return whether the strip restores its on/off state after a power cut."""
         return self.coordinator.data.power_loss_recovery
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Restore the last state after a power cut."""
+        """Make the strip come back on or off, as before the power cut."""
         await self.coordinator.async_set_power_loss_recovery(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Stay off after a power cut."""
+        """Make the strip always come back on after a power cut."""
         await self.coordinator.async_set_power_loss_recovery(False)

@@ -427,12 +427,12 @@ class NanoleafDevice:
         return reply[0] if reply else NO_SCENE_ID
 
     async def get_power_loss_recovery(self) -> bool:
-        """Return whether the light restores its last state after a power cut."""
+        """Return whether the light restores its on/off state after a power cut (else it comes back on)."""
         reply = await self._ci(_CI_POWER_LOSS, _POWER_LOSS_GET, b"\x00")
         return reply[:1] == b"\x01"
 
     async def set_power_loss_recovery(self, enabled: bool) -> None:
-        """Choose whether the light restores its last state after a power cut."""
+        """Choose whether the light restores its on/off state after a power cut (else it comes back on)."""
         await self._ci(_CI_POWER_LOSS, _POWER_LOSS_SET, b"\x01" if enabled else b"\x00")
 
 
