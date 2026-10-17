@@ -94,8 +94,9 @@ A pull request is expected to:
   against the oldest supported Home Assistant and the newest, plus HACS and
   `hassfest`, and needs a maintainer to approve the first run on a fork.
 - Come with tests.
-- Update the docs it affects: the README for what users see, docs/PROTOCOL.md for
-  what was learned about the protocol.
+- Update the docs it affects: the README for what users see, docs/SCENES.md for
+  how scenes are built, docs/PROTOCOL.md for what was learned about the
+  protocol.
 - Explain, in the commit message, why the change is the way it is — particularly
   anything that works around how a device behaves.
 

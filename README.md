@@ -281,6 +281,9 @@ data:
 `entity_id` under `data:` (the **Strips** field in the UI), or as a `target:`;
 both work.
 
+For every effect, the colour formats, what speed and delay mean, and ready-made
+recipes, see **[docs/SCENES.md](docs/SCENES.md)**. In short:
+
 Colours are `[red, green, blue]` (0–255) or
 `{hue: 0-360, saturation: 0-100, brightness: 0-100, repeat: N}`; `repeat` plays
 that colour N times in the cycle. Speed and delay are in tenths of a second
