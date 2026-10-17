@@ -168,7 +168,7 @@ If the strip is factory-reset, Home Assistant asks you to pair again.
 | **Community search** (text, config) | setting it searches the Nanoleaf community library |
 | **Community scene** (select, config) | the search results |
 | **Preview / Save to library / Add to strip** (buttons, config) | act on the selected community scene |
-| **Scene to manage** (select, config) | which scene the buttons below act on: every scene on the strip, then in the library, each marked with where it lives: `[strip]`, `[library]` or `[strip + library]`. Picking one plays nothing; until you pick one it shows the scene playing. In automations, use the option with its marker, e.g. `Aurora [library]` |
+| **Scene to manage** (select, config) | which scene the buttons below act on: every scene on the strip, then in the library, each marked with where it lives: `[strip]`, `[library]` or `[strip + library]`. Picking one plays nothing. It shows *unknown* until you pick one, and never follows the scene playing, so the buttons only act on a scene you chose. In automations, use the option with its marker, e.g. `Aurora [library]` |
 | **Add to strip / Remove from strip / Delete from library** (buttons, config) | act on the scene to manage |
 | **Free scene slots**, **Scenes on strip** (sensors) | of the 12 |
 | **Connection** (binary sensor, diagnostic) | on while Home Assistant holds the Bluetooth link; turns off the moment the link drops, and stays available while the other entities are not |

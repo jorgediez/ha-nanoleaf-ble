@@ -430,23 +430,23 @@ async def test_management_entities_are_configuration(
     assert light.entity_category is None
 
 
-async def test_scene_to_manage_follows_the_playing_scene(
+async def test_scene_to_manage_ignores_the_playing_scene(
     hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:
+    """Only a pick selects a scene, so no button acts on one nobody chose."""
     select = entity_id(hass, init_integration, "select", "scene")
-    assert hass.states.get(select).state == "unknown"  # nothing playing
-    bluetooth.state.on, bluetooth.state.current = True, 252
+    bluetooth.state.on, bluetooth.state.current = True, 247
     await init_integration.runtime_data.async_refresh()
-    assert hass.states.get(select).state == "Cloud9 [strip]"
+    assert hass.states.get(select).state == "unknown"
     assert hass.states.get(select).name.endswith("Scene to manage")
 
-    # Without a pick, the buttons act on the playing scene.
-    bluetooth.state.current = 247
-    await init_integration.runtime_data.async_refresh()
-    await _press(hass, init_integration, "scene_remove_from_strip")
-    assert 247 not in bluetooth.state.scenes
+    # Without a pick, the buttons refuse instead of acting on the playing scene.
+    with pytest.raises(ServiceValidationError) as err:
+        await _press(hass, init_integration, "scene_remove_from_strip")
+    assert err.value.translation_key == "no_scene_selected"
+    assert 247 in bluetooth.state.scenes
 
-    # A pick wins over the playing scene, and picking plays nothing.
+    # A pick stays put while scenes change, and picking plays nothing.
     await _select(hass, init_integration, "scene", "Cloud9 [strip]")
     bluetooth.state.current = 250
     await init_integration.runtime_data.async_refresh()
