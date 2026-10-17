@@ -14,6 +14,7 @@ from .const import (
     PREVIEW_SCENE_ID,
     PROTECTED_SCENE_IDS,
     SUPPORTED_MODELS,
+    UNVERIFIED_MODELS,
     USER_SCENE_IDS,
     builtin_scene_names,
 )
@@ -55,6 +56,7 @@ __all__ = [
     "PREVIEW_SCENE_ID",
     "PROTECTED_SCENE_IDS",
     "SUPPORTED_MODELS",
+    "UNVERIFIED_MODELS",
     "USER_SCENE_IDS",
     "AdvertisementInfo",
     "CommunityClient",

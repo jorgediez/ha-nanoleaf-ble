@@ -11,7 +11,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
 
-from .const import CONF_LOCAL_NAME, DATA_STORE, DOMAIN, ISSUES_URL
+from .const import (
+    CONF_LOCAL_NAME,
+    DATA_STORE,
+    DEVICE_REPORT_URL,
+    DOMAIN,
+    ISSUES_URL,
+)
 from .coordinator import (
     NanoleafConfigEntry,
     NanoleafCoordinator,
@@ -82,6 +88,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> 
     else:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
 
+    issue_id = f"unverified_model_{entry.entry_id}"
+    if coordinator.advertisement.unverified:
+        ir.async_create_issue(
+            hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="unverified_model",
+            translation_placeholders={
+                "name": entry.title,
+                "model": coordinator.model,
+                "device_report_url": DEVICE_REPORT_URL,
+            },
+        )
+    else:
+        ir.async_delete_issue(hass, DOMAIN, issue_id)
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Writing up to six scenes takes a few seconds; don't hold up the start.
@@ -115,6 +139,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) ->
     the token until the strip is factory-reset; nothing can be done about it.
     """
     ir.async_delete_issue(hass, DOMAIN, f"experimental_firmware_{entry.entry_id}")
+    ir.async_delete_issue(hass, DOMAIN, f"unverified_model_{entry.entry_id}")
     ir.async_delete_issue(hass, DOMAIN, f"default_scenes_incomplete_{entry.entry_id}")
     address = entry.unique_id or ""
     if (store := hass.data.get(DATA_STORE)) is not None:

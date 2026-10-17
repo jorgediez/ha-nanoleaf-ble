@@ -81,7 +81,7 @@
       "already_configured": "This strip is already configured.",
       "already_in_progress": "This strip is already being set up.",
       "no_devices_found": "No supported strips heard over Bluetooth. Check the strip is powered and in range of an adapter or ESPHome Bluetooth proxy.",
-      "not_supported": "This Nanoleaf device is not supported (yet). Supported: Essentials Lightstrip (NL55, NL68), Essentials A19 (NL45) and Secretlab MAGRGB (NL62).",
+      "not_supported": "This Nanoleaf device is not supported (yet). Supported: the Essentials lights (NL45, NL55, NL67, NL68 and the Matter BR30, GU10, Downlight and Ceiling lamp) and the Secretlab MAGRGB (NL62). 1D devices and Sense+ switches use commands the integration does not implement.",
       "reauth_successful": "Paired again.",
       "reconfigure_successful": "Credentials updated.",
       "wrong_device": "That is a different strip."
@@ -203,6 +203,10 @@
     "experimental_firmware": {
       "title": "{name}: firmware {firmware} support is experimental",
       "description": "Firmware 5.0.0 and later speaks a newer protocol that has not been tested on a real strip yet. On/off, brightness, colour and identify should work; scenes and Restore on/off after power loss are not available.\n\nPlease report how it goes, with diagnostics attached: {issues_url}"
+    },
+    "unverified_model": {
+      "title": "{name}: the {model} is not verified yet",
+      "description": "The {model} speaks the same protocol as the Essentials Lightstrip (NL68), so it should work, but nobody has confirmed it on a real device yet.\n\nPlease tell us how it goes, even if everything works, with diagnostics attached: {device_report_url}"
     },
     "default_scenes_incomplete": {
       "title": "{name}: not every default scene fits",

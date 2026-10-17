@@ -11,6 +11,7 @@ from .const import (
     PARTNER_MODEL_PREFIX,
     SENSE_PLUS_MODELS,
     SUPPORTED_MODELS,
+    UNVERIFIED_MODELS,
 )
 
 #: The app ignores manufacturer data shorter than this.
@@ -76,12 +77,19 @@ class AdvertisementInfo:
     @property
     def supported(self) -> bool:
         """Return whether this library is meant to drive the model."""
-        return self.model in SUPPORTED_MODELS
+        return self.model in SUPPORTED_MODELS or self.unverified
+
+    @property
+    def unverified(self) -> bool:
+        """Return whether the model should work but nobody has confirmed it."""
+        return self.model in UNVERIFIED_MODELS
 
     @property
     def product_name(self) -> str:
         """Return the product name the app shows, or the model code."""
-        return SUPPORTED_MODELS.get(self.model, f"Nanoleaf {self.model}")
+        return SUPPORTED_MODELS.get(self.model) or UNVERIFIED_MODELS.get(
+            self.model, f"Nanoleaf {self.model}"
+        )
 
 
 def parse_advertisement(data: bytes) -> AdvertisementInfo:
