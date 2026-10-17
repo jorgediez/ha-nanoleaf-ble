@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.nanoleaf_ble.const import DATA_STORE, DOMAIN
 from custom_components.nanoleaf_ble.lib import default_scenes
@@ -26,6 +31,7 @@ from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from .conftest import Bluetooth
 
@@ -167,3 +173,24 @@ def test_brightness_scaling():
     assert brightness_to_percent(255) == 100
     assert percent_to_brightness(100) == 255
     assert percent_to_brightness(0) == 0
+
+
+async def test_turn_on_polls_soon_for_the_resumed_scene(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """Switched on without a colour, the strip resumes its last scene."""
+    entity_id = light_id(hass, init_integration)
+    coordinator = init_integration.runtime_data
+    # Off, the strip reports no scene; the one it will resume is Cloud9.
+    bluetooth.state.current = 252
+    await _call(hass, "turn_on", entity_id)
+    assert hass.states.get(entity_id).attributes[ATTR_EFFECT] is None
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).attributes[ATTR_EFFECT] == "Cloud9"
+
+    # With a colour, the state is known already: no extra poll.
+    await _call(hass, "turn_off", entity_id)
+    await _call(hass, "turn_on", entity_id, **{ATTR_HS_COLOR: (120, 100)})
+    assert coordinator._refresh_timer is None
