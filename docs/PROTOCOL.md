@@ -42,6 +42,7 @@ What you need in both cases:
 Source: `lg/C6437C` (BluetoothScanner).
 
 * Scan filter: **Manufacturer-specific data, company ID `0x080B` (2059)**. Data shorter than 10 bytes is ignored.
+* **The manufacturer data is in the scan response, not the advertisement** (verified 2026-10-16 on the NL62 through an ESPHome proxy). A passive scanner never receives it and cannot recognise the strip; scan actively.
 * Manufacturer data layout (after the 2-byte company ID):
 
 | Offset | Len | Meaning |
@@ -425,7 +426,7 @@ The full Command Interface scene family (`07 xx`), all **POST to `ci`**. Request
 | cmd | Name | Request data | Reply data | Verified behaviour |
 |---|---|---|---|---|
 | 01 | Display (preview) | simple-scene TLVs | none | Plays an unsaved scene. |
-| 02 | Add | simple-scene TLVs; metadata byte 0 = **scene ID** | `00` stored / `01` refused | Stored scenes show up in the list and can be activated by ID. **The transport status is 0 even when refused; check the reply byte.** |
+| 02 | Add | simple-scene TLVs; metadata byte 0 = **scene ID** | `00` stored / `01` refused | Stored scenes show up in the list and can be activated by ID. **The transport status is 0 even when refused; check the reply byte.** The strip also starts playing the scene it just stored, and the app lists it as "Effect N" (verified 2026-10-16). |
 | 03 | List | none | IDs | |
 | 04 | Get | ID | simple-scene TLVs | |
 | 05 | Delete | ID (minimal big-endian bytes) | none | Removes the scene. Deleting a non-existent ID also returns success. |
