@@ -22,9 +22,11 @@ body:
     attributes:
       label: Raw advertisement
       description: >-
-        The manufacturer data for company 0x080B, as hex. Settings → System →
-        Hardware → ⋮ → Bluetooth → Advertisement monitor shows it, and so do
-        the integration's diagnostics.
+        The manufacturer data for company 0x080B, as hex. If the device is set
+        up, the integration's diagnostics show it as "raw" under
+        "advertisement", with the device ID masked. If it is not, Settings →
+        System → Hardware → ⋮ → Bluetooth → Advertisement monitor shows it; you
+        may mask bytes 12 to 19 (the device ID) yourself.
   - type: dropdown
     id: result
     attributes:

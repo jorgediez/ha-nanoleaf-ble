@@ -230,6 +230,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         self.advertisement = advertisement_from_entry(dict(entry.data))
         self.local_name: str = entry.data.get(CONF_LOCAL_NAME) or self.address
         self.rssi: int | None = None
+        #: The last manufacturer data the strip advertised, for diagnostics.
+        self.manufacturer_data: bytes | None = None
 
         self._client: BleakClientWithServiceCache | None = None
         self.device: NanoleafDevice | None = None
@@ -341,6 +343,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         data = service_info.manufacturer_data.get(NANOLEAF_COMPANY_ID)
         if data is None:
             return
+        self.manufacturer_data = bytes(data)
         try:
             advertisement = parse_advertisement(data)
         except ValueError:

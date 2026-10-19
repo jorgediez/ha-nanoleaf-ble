@@ -28,6 +28,10 @@ async def test_redacted(hass: HomeAssistant, init_integration: MockConfigEntry) 
         assert secret not in dumped, secret
 
     assert diagnostics["advertisement"]["model"] == "NL62"
+    # The raw advertisement, for device reports, with the EUI-64 masked.
+    assert diagnostics["advertisement"]["raw"] == (
+        "4e4c4d3001063102000010" + "**" * 8 + "4e4c363200000000"
+    )
     assert diagnostics["capabilities"]["protocol"] == "legacy"
     assert diagnostics["state"]["free_slots"] == 2
     assert diagnostics["coordinator"]["last_exception"] is None

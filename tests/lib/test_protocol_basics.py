@@ -14,7 +14,10 @@ import struct
 import pytest
 
 from custom_components.nanoleaf_ble.lib import commands, const, ltpdu_v3
-from custom_components.nanoleaf_ble.lib.advertisement import parse_advertisement
+from custom_components.nanoleaf_ble.lib.advertisement import (
+    parse_advertisement,
+    redacted_hex,
+)
 from custom_components.nanoleaf_ble.lib.exceptions import NanoleafProtocolError
 
 from ..common import EUI, NL62_MANUFACTURER_DATA, advertisement_bytes
@@ -97,6 +100,19 @@ def test_ten_byte_advertisement_has_no_flags():
     info = parse_advertisement(b"NL55" + bytes([1, 0, 0, 1, 0, 0]))
     assert info.paired is None
     assert info.device_id is None
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        (bytes(range(10)), "00010203040506070809"),
+        (bytes(range(15)), "000102030405060708090a" + "**" * 4),
+        (bytes(range(21)), "000102030405060708090a" + "**" * 8 + "1314"),
+    ],
+)
+def test_redacted_hex_masks_the_device_id(data, expected):
+    assert redacted_hex(data) == expected
+    assert EUI not in redacted_hex(NL62_MANUFACTURER_DATA)
 
 
 @pytest.mark.parametrize(

@@ -7,7 +7,7 @@ the last poll read.
 
 It leaves out what identifies a user or would let someone control the strip:
 the Bluetooth address, auth token, client ID, serial number and EUI are
-redacted. Scene names are left out (the user chose them); the scene IDs and
+redacted, the EUI also inside the raw advertisement. Scene names are left out (the user chose them); the scene IDs and
 the size of the library are enough to debug with.
 """
 
@@ -21,6 +21,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import CONF_CLIENT_ID, CONF_LOCAL_NAME, CONF_TOKEN
 from .coordinator import NanoleafConfigEntry
+from .lib import redacted_hex
 
 TO_REDACT = {CONF_ADDRESS, CONF_TOKEN, CONF_CLIENT_ID, CONF_LOCAL_NAME}
 
@@ -41,6 +42,11 @@ async def async_get_config_entry_diagnostics(
             "options": dict(entry.options),
         },
         "advertisement": {
+            # Company 0x080B's manufacturer data; None until the strip has
+            # advertised since Home Assistant started.
+            "raw": None
+            if coordinator.manufacturer_data is None
+            else redacted_hex(coordinator.manufacturer_data),
             "advertised_model": advertisement.advertised_model,
             "model": advertisement.model,
             "firmware": advertisement.firmware_version,

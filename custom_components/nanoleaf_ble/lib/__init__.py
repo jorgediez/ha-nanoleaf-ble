@@ -5,7 +5,7 @@ no Home Assistant imports and uses relative imports only, so the folder can
 become a package of its own unchanged.
 """
 
-from .advertisement import AdvertisementInfo, parse_advertisement
+from .advertisement import AdvertisementInfo, parse_advertisement, redacted_hex
 from .cloud import CommunityClient, CommunityScene, scene_from_animation
 from .const import (
     MAX_SCENES,
@@ -83,5 +83,6 @@ __all__ = [
     "default_scenes",
     "parse_advertisement",
     "parse_device_information",
+    "redacted_hex",
     "scene_from_animation",
 ]

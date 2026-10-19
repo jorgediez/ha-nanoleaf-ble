@@ -92,6 +92,16 @@ class AdvertisementInfo:
         )
 
 
+def redacted_hex(data: bytes) -> str:
+    """Return manufacturer data as hex, with the device ID (EUI-64) masked."""
+    masked = min(len(data), _DEVICE_ID.stop) - _DEVICE_ID.start
+    if masked <= 0:
+        return data.hex()
+    return (
+        data[: _DEVICE_ID.start].hex() + "**" * masked + data[_DEVICE_ID.stop :].hex()
+    )
+
+
 def parse_advertisement(data: bytes) -> AdvertisementInfo:
     """Decode manufacturer data, after the 2-byte company ID.
 

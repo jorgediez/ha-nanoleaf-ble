@@ -16,7 +16,8 @@ What makes a report actionable:
 - The integration's diagnostics (*Settings → Devices & Services → Nanoleaf
   Essentials (Bluetooth) → ⋮ → Download diagnostics*). The Bluetooth address,
   auth token, serial number and device ID are redacted. They include the model,
-  firmware and protocol, which is what tells devices apart.
+  firmware and protocol, which is what tells devices apart, and the raw
+  advertisement.
 - A debug log covering the moment it went wrong, with
   `custom_components.nanoleaf_ble: debug` in your `logger` settings. See
   [Troubleshooting](README.md#troubleshooting).
