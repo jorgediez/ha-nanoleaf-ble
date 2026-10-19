@@ -369,7 +369,7 @@ See `custom_components/nanoleaf_ble/lib/` (`legacy.py`, `ltpdu_v3.py`, `device.p
 
 **Device:** Secretlab MAGRGB 40G8, address `DF:31:88:26:BE:3A`. Tested through an ESPHome Bluetooth proxy in active mode, using `bleak-esphome`.
 
-**Advertisement:** `4e4c4d30 010631 020000 10 dc8e95fffe0b345f 4e4c3632 00000000`
+**Advertisement:** `4e4c4d30 010631 020000 10 <EUI-64> 4e4c3632 00000000` (the device ID is replaced by a placeholder here)
 * Model `NLM0`, a "partner" device. For `NLM0` the real model string starts at **offset 19**, not 21: here it is **`NL62`** (Secretlab lightstrip, HomeKit Essentials family).
 * Firmware **1.6.49**, so the **legacy protocol** applies. Hardware 2.0.0.
 * Flags `0x10`: the "paired" bit (bit 1) is 0.
@@ -550,7 +550,7 @@ The app's parser (`ng.d` DeviceInformationFormat) accepts three forms:
 | 18–28 | serial number (11 characters) |
 | 29–36 | EUI-64 (= the device ID in the advertisement) |
 
-  This strip returned `2.0.0 / 1.6.49 / N23490K1500 / dc8e95fffe0b345f`.
+  This strip returned `2.0.0 / 1.6.49 / <serial> / <EUI-64>` (the serial number and EUI are replaced by placeholders here).
 * **TLV form** (other lengths): 1-byte type, 1-byte length. Types: `03` hardware, `04` serial, `06` EUI, `07` addressable, `08` country code, `09` setup key, `0A` discriminator, `0B` model, `0C` vendor ID, `0D` product ID, `1B` partner model (used when the model is `M1`/`M2`/`M3`), `1C` sub-model, `FE` firmware.
 * **JSON form** (MQTT devices): `firmwareVersion`, `hardwareVersion`, `serialNo`.
 

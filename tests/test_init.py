@@ -29,7 +29,7 @@ async def test_setup_and_unload(
     assert entry.state is ConfigEntryState.LOADED
     coordinator = entry.runtime_data
     assert coordinator.connected
-    assert coordinator.device_information.serial_number == "N23490K1500"
+    assert coordinator.device_information.serial_number == "N00000A0000"
     assert not coordinator.supports_colour_temperature
 
     assert await hass.config_entries.async_unload(entry.entry_id)

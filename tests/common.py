@@ -31,12 +31,12 @@ ADDRESS = "DF:31:88:26:BE:3A"
 LOCAL_NAME = "Secretlab MAGRGB 40G8"
 SETUP_CODE = "12345678"
 TOKEN = bytes.fromhex("0102030405060708")
-SERIAL = "N23490K1500"
-EUI = "dc8e95fffe0b345f"
+SERIAL = "N00000A0000"
+EUI = "aabbccfffe001122"
 
 #: The NL62's advertisement, as captured (protocol doc §7).
 NL62_MANUFACTURER_DATA = bytes.fromhex(
-    "4e4c4d3001063102000010dc8e95fffe0b345f4e4c363200000000"
+    "4e4c4d3001063102000010aabbccfffe0011224e4c363200000000"
 )
 
 
