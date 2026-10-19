@@ -38,10 +38,10 @@ MAX_POLL_INTERVAL: Final = 300
 #: works (verified through an ESPHome proxy).
 RECONNECT_DELAY: Final = 2.0
 
-#: Switched on without a colour, the strip resumes whatever it showed last (a
-#: scene, or a colour set in the app). Poll this long after, rather than wait
-#: for the next scheduled poll to show it.
-REFRESH_AFTER_TURN_ON: Final = 1.5
+#: The strip changes what it shows by itself after some commands: switched on
+#: without a colour, it resumes whatever it showed last; storing a scene plays
+#: it. Poll this long after, rather than wait for the next scheduled poll.
+REFRESH_SOON: Final = 1.5
 
 #: Power-loss recovery is a setting, not state; read it every this many polls
 #: (75 s at the default interval), so a change in the app shows up soon enough.

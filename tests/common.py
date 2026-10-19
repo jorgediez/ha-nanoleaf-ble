@@ -160,7 +160,9 @@ class StripState:
                 if len(self.scenes) >= self.capacity and scene_id not in self.scenes:
                     reply = b"\x01"
                 else:
+                    # As the NL62 does: storing a scene plays it.
                     self.scenes[scene_id] = data
+                    self.current, self.on = scene_id, True
                     reply = b"\x00"
             elif command == 0x03:
                 reply = bytes(self.scenes)
