@@ -196,7 +196,9 @@ needed, but the app does not know about it. You can move a library scene onto a
 strip at any time (*Add to strip*), and take it off again.
 
 * **Storing a scene plays it.** The strip starts a scene as soon as it is
-  stored; Home Assistant sends only the store command.
+  stored; Home Assistant sends only the store command, then reads the strip
+  1.5 s later so the light shows the scene playing. After the default scenes,
+  that is the last one written.
 * **The app shows stored scenes as "Effect N".** Names live in Home Assistant,
   not on the strip, so the app cannot know them.
 * **Adding a community scene to the strip also saves it to the library.** The

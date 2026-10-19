@@ -51,7 +51,7 @@ from .const import (
     DOMAIN,
     POWER_LOSS_POLL_EVERY,
     RECONNECT_DELAY,
-    REFRESH_AFTER_TURN_ON,
+    REFRESH_SOON,
 )
 from .lib import (
     MAX_SCENES,
@@ -409,10 +409,13 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
 
     @callback
     def _async_refresh_soon(self) -> None:
-        """Poll shortly, to learn what the strip resumed after switching on."""
+        """Poll shortly, to learn what the strip chose to show by itself.
+
+        Each call restarts the wait, so a burst of commands polls once.
+        """
         self._cancel_refresh_timer()
         self._refresh_timer = async_call_later(
-            self.hass, REFRESH_AFTER_TURN_ON, self._async_refresh_now
+            self.hass, REFRESH_SOON, self._async_refresh_now
         )
 
     @callback
@@ -953,6 +956,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         )
         self._checked_scenes.add(scene_id)
         self._async_set_data(scene_ids=(*self.data.scene_ids, scene_id))
+        # The strip plays a scene as soon as it is stored.
+        self._async_refresh_soon()
         return scene_id
 
     def _free_scene_id(self) -> int:
@@ -1020,6 +1025,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             written.append(scene_id)
         if written:
             self._async_set_data(scene_ids=(*self.data.scene_ids, *written))
+            # The strip plays each scene it stores; one poll shows the last.
+            self._async_refresh_soon()
         left_out = [self.scene_name(sid) for sid in missing if sid not in written]
         issue_id = f"default_scenes_incomplete_{self.config_entry.entry_id}"
         if left_out and automatic:

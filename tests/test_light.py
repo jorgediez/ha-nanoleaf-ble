@@ -194,3 +194,46 @@ async def test_turn_on_polls_soon_for_the_resumed_scene(
     await _call(hass, "turn_off", entity_id)
     await _call(hass, "turn_on", entity_id, **{ATTR_HS_COLOR: (120, 100)})
     assert coordinator._refresh_timer is None
+
+
+async def test_storing_a_scene_polls_soon_for_it(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """The strip plays a scene as soon as it is stored."""
+    entity_id = light_id(hass, init_integration)
+    coordinator = init_integration.runtime_data
+    item = hass.data[DATA_STORE].async_add("Mine", default_scenes("NL62")[245])
+    await coordinator.async_add_to_strip(item)
+    assert hass.states.get(entity_id).attributes[ATTR_EFFECT] is None
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == STATE_ON
+    assert hass.states.get(entity_id).attributes[ATTR_EFFECT] == "Mine"
+
+
+async def test_storing_default_scenes_polls_once(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """The defaults go in a row: one poll after the last shows what plays."""
+    entity_id = light_id(hass, init_integration)
+    coordinator = init_integration.runtime_data
+    for scene_id in (244, 245, 246):
+        del bluetooth.state.scenes[scene_id]
+    await coordinator.async_refresh()
+    polls = 0
+    poll = coordinator._async_update_data
+
+    async def counted():
+        nonlocal polls
+        polls += 1
+        return await poll()
+
+    coordinator._async_update_data = counted  # type: ignore[method-assign]
+    assert await coordinator.async_restore_default_scenes() == [244, 245, 246]
+    assert polls == 0
+
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=2))
+    await hass.async_block_till_done()
+    assert polls == 1
+    assert hass.states.get(entity_id).attributes[ATTR_EFFECT] == "Assassin's Creed"
