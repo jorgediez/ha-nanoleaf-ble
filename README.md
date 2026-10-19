@@ -149,7 +149,12 @@ token in hex (for example from `scripts/nanoleaf_cli.py pair`). Firmware 5
 also needs the client ID that came with it.
 
 **Reconfigure** (*⋮ → Reconfigure*) pairs again or switches to another token.
-If the strip is factory-reset, Home Assistant asks you to pair again.
+If the strip is factory-reset, it comes back with a new Bluetooth address and
+forgets every pairing. Home Assistant recognises it by its device ID, which a
+reset keeps: the existing entry moves to the new address and asks you to pair
+again, rather than the strip showing up as a new device. The strip's name in
+Home Assistant ends with the tag in its advertised name (*40G8* in
+*Secretlab MAGRGB 40G8*), which a reset keeps too.
 
 ### Options
 

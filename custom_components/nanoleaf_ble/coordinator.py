@@ -26,6 +26,7 @@ from bleak_retry_connector import BleakClientWithServiceCache, establish_connect
 
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.const import CONF_ADDRESS
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -135,6 +136,16 @@ class EffectTarget:
 type NanoleafConfigEntry = ConfigEntry[NanoleafCoordinator]
 
 
+def unique_id_for(advertisement: AdvertisementInfo, address: str) -> str:
+    """Return the unique id of a strip: its device ID, else its address.
+
+    The device ID (EUI-64) survives a factory reset; the Bluetooth address
+    does not (verified on the NL62), so it is only the fallback for an
+    advertisement too short to carry the ID.
+    """
+    return advertisement.device_id or address
+
+
 def advertisement_from_entry(data: dict[str, Any]) -> AdvertisementInfo:
     """Rebuild the advertisement fields the session needs from entry data."""
     firmware = tuple(int(part) for part in str(data[CONF_FIRMWARE]).split("."))
@@ -220,13 +231,13 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             hass,
             _LOGGER,
             config_entry=entry,
-            name=f"{DOMAIN} {entry.unique_id}",
+            name=f"{DOMAIN} {entry.data[CONF_ADDRESS]}",
             update_interval=timedelta(
                 seconds=entry.options.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
             ),
         )
         self.store = store
-        self.address: str = entry.unique_id or ""
+        self.address: str = entry.data[CONF_ADDRESS]
         self.advertisement = advertisement_from_entry(dict(entry.data))
         self.local_name: str = entry.data.get(CONF_LOCAL_NAME) or self.address
         self.rssi: int | None = None

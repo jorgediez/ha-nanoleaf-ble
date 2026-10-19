@@ -6,7 +6,7 @@ import logging
 
 from bleak.exc import BleakError
 
-from homeassistant.const import Platform
+from homeassistant.const import CONF_ADDRESS, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, issue_registry as ir
 from homeassistant.helpers.typing import ConfigType
@@ -55,7 +55,13 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> bool:
     """Set up a strip from a config entry."""
-    coordinator = NanoleafCoordinator(hass, entry, hass.data[DATA_STORE])
+    store = hass.data[DATA_STORE]
+    # A strip that moved to a new address (after a factory reset) leaves the
+    # scene records of the old one behind: that strip's scenes are gone.
+    store.async_keep_devices(
+        {e.data[CONF_ADDRESS] for e in hass.config_entries.async_entries(DOMAIN)}
+    )
+    coordinator = NanoleafCoordinator(hass, entry, store)
     await coordinator.async_start()
     try:
         await coordinator.async_config_entry_first_refresh()
@@ -133,7 +139,7 @@ async def async_remove_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) ->
     ir.async_delete_issue(hass, DOMAIN, f"experimental_firmware_{entry.entry_id}")
     ir.async_delete_issue(hass, DOMAIN, f"unverified_model_{entry.entry_id}")
     ir.async_delete_issue(hass, DOMAIN, f"default_scenes_incomplete_{entry.entry_id}")
-    address = entry.unique_id or ""
+    address = entry.data[CONF_ADDRESS]
     if (store := hass.data.get(DATA_STORE)) is not None:
         store.async_remove_device(address)
 

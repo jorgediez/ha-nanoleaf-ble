@@ -47,7 +47,12 @@ from .const import (
     MAX_POLL_INTERVAL,
     MIN_POLL_INTERVAL,
 )
-from .coordinator import NanoleafCoordinator, advertisement_from_entry, async_probe
+from .coordinator import (
+    NanoleafCoordinator,
+    advertisement_from_entry,
+    async_probe,
+    unique_id_for,
+)
 from .lib import (
     NANOLEAF_COMPANY_ID,
     AdvertisementInfo,
@@ -75,9 +80,21 @@ def _advertisement(
         return None
 
 
-def _title(advertisement: AdvertisementInfo, address: str) -> str:
-    """Name the strip after its product, plus the end of its address."""
-    return f"{advertisement.product_name} {address.replace(':', '')[-4:]}"
+def _title(
+    advertisement: AdvertisementInfo, info: bluetooth.BluetoothServiceInfoBleak
+) -> str:
+    """Name the strip after its product, plus the tag at the end of its name.
+
+    The strip advertises a name such as "Secretlab MAGRGB 40G8"; the tag at its
+    end survives a factory reset, while the address does not (verified on the
+    NL62). Without a name, the end of the address stands in.
+    """
+    words = (info.name or "").split()
+    if words and info.name != info.address:
+        tag = words[-1]
+    else:
+        tag = info.address.replace(":", "")[-4:]
+    return f"{advertisement.product_name} {tag}"
 
 
 def _pair_schema() -> vol.Schema:
@@ -164,15 +181,14 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
         self, discovery_info: bluetooth.BluetoothServiceInfoBleak
     ) -> ConfigFlowResult:
         """Handle a strip found by Bluetooth discovery."""
-        await self.async_set_unique_id(discovery_info.address)
-        self._abort_if_unique_id_configured()
         advertisement = _advertisement(discovery_info)
         if advertisement is None or not advertisement.supported:
             return self.async_abort(reason="not_supported")
+        await self._async_set_strip(discovery_info, advertisement)
         self._service_info = discovery_info
         self._advertisement = advertisement
         self.context["title_placeholders"] = {
-            "name": _title(advertisement, discovery_info.address)
+            "name": _title(advertisement, discovery_info)
         }
         return await self.async_step_pair()
 
@@ -181,11 +197,12 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Pick one of the strips Home Assistant has heard."""
         if user_input is not None:
-            address = user_input[CONF_ADDRESS]
-            await self.async_set_unique_id(address, raise_on_progress=False)
-            self._abort_if_unique_id_configured()
-            self._service_info = self._discovered[address]
-            self._advertisement = _advertisement(self._service_info)
+            info = self._discovered[user_input[CONF_ADDRESS]]
+            advertisement = _advertisement(info)
+            assert advertisement is not None  # noqa: S101 - listed only when parsed
+            await self._async_set_strip(info, advertisement, raise_on_progress=False)
+            self._service_info = info
+            self._advertisement = advertisement
             return await self.async_step_pair()
 
         configured = self._async_current_ids(include_ignore=False)
@@ -196,7 +213,7 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
             if (
                 advertisement is not None
                 and advertisement.supported
-                and info.address not in configured
+                and unique_id_for(advertisement, info.address) not in configured
             ):
                 self._discovered[info.address] = info
         if not self._discovered:
@@ -207,12 +224,33 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_ADDRESS): vol.In(
                         {
-                            address: f"{_title(_advertisement(info), address)} ({address})"  # type: ignore[arg-type]
+                            address: f"{_title(_advertisement(info), info)} ({address})"  # type: ignore[arg-type]
                             for address, info in self._discovered.items()
                         }
                     )
                 }
             ),
+        )
+
+    async def _async_set_strip(
+        self,
+        info: bluetooth.BluetoothServiceInfoBleak,
+        advertisement: AdvertisementInfo,
+        *,
+        raise_on_progress: bool = True,
+    ) -> None:
+        """Set the unique id; abort if the strip is set up already.
+
+        A strip set up before keeps its entry even at a new address (a factory
+        reset gives it one): the entry follows it and reloads, and asks to pair
+        again if the strip no longer knows the token.
+        """
+        await self.async_set_unique_id(
+            unique_id_for(advertisement, info.address),
+            raise_on_progress=raise_on_progress,
+        )
+        self._abort_if_unique_id_configured(
+            updates={CONF_ADDRESS: info.address, CONF_LOCAL_NAME: info.name}
         )
 
     async def async_step_pair(
@@ -239,7 +277,7 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
                     error = _error_key(exc, code is None)
             if error is None and credentials is not None:
                 return self.async_create_entry(
-                    title=_title(advertisement, info.address),
+                    title=_title(advertisement, info),
                     data={
                         CONF_ADDRESS: info.address,
                         CONF_TOKEN: credentials.token.hex(),
@@ -258,7 +296,7 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
             description_placeholders={
-                "name": _title(advertisement, info.address),
+                "name": _title(advertisement, info),
                 "firmware": advertisement.firmware_version,
             },
         )
@@ -270,11 +308,13 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
         user_input: dict[str, Any] | None,
     ) -> ConfigFlowResult:
         """Shared by reauth and reconfigure: pair again or enter a token."""
-        address = entry.unique_id or entry.data[CONF_ADDRESS]
+        address = entry.data[CONF_ADDRESS]
         advertisement = advertisement_from_entry(dict(entry.data))
+        unique_id = entry.unique_id
         last = bluetooth.async_last_service_info(self.hass, address, connectable=True)
         if last is not None and (fresh := _advertisement(last)) is not None:
             advertisement = fresh
+            unique_id = unique_id_for(fresh, address)
         local_name = (last.name if last else None) or entry.data.get(
             CONF_LOCAL_NAME, address
         )
@@ -294,9 +334,8 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
                     _LOGGER.debug("pairing with %s failed: %s", address, exc)
                     error = _error_key(exc, code is None)
             if error is None and credentials is not None:
-                # The unique id is the Bluetooth address the flow connected to,
-                # so the device cannot differ; the check guards the entry data.
-                await self.async_set_unique_id(address)
+                # The strip at the entry's address must still be the same one.
+                await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_mismatch(reason="wrong_device")
                 return self.async_update_reload_and_abort(
                     entry,

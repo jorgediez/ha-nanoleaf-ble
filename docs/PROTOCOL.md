@@ -56,6 +56,8 @@ Source: `lg/C6437C` (BluetoothScanner).
 | 21 | n | Sub-model string, for `NL1D` / `NLM*` / 1D models (for `NLM0` partner devices it starts at **offset 19**, replacing the pair ID; e.g. `NL62`) |
 
 A packet of exactly 10 bytes is a different, shorter scan-result type.
+* **A factory reset changes the Bluetooth address, but not the device ID or the advertised name** (verified 2026-10-19 on the NL62, over two resets: the address changed each time, while bytes 11–18 and the name `Secretlab MAGRGB 40G8` stayed the same). Identify a strip by its device ID.
+* **After a reset the strip also advertises as a HomeKit accessory**, from a separate address: Apple manufacturer data (company `0x004C`), HomeKit type `0x06`, status flags `0x01` (not paired with HomeKit). It carries no Nanoleaf data; ignore it.
 * The **device name** used as the SRP username is `ScanRecord.getDeviceName()`, the advertised *Complete Local Name*.
 
 ---
@@ -367,7 +369,7 @@ See `custom_components/nanoleaf_ble/lib/` (`legacy.py`, `ltpdu_v3.py`, `device.p
 
 **Device:** Secretlab MAGRGB 40G8, address `DF:31:88:26:BE:3A`. Tested through an ESPHome Bluetooth proxy in active mode, using `bleak-esphome`.
 
-**Advertisement:** `4e4c4d30 010631 020000 10 dc8e95fffe0b345f 4e4c3632 00000000`
+**Advertisement:** `4e4c4d30 010631 020000 10 <EUI-64> 4e4c3632 00000000` (the device ID is replaced by a placeholder here)
 * Model `NLM0`, a "partner" device. For `NLM0` the real model string starts at **offset 19**, not 21: here it is **`NL62`** (Secretlab lightstrip, HomeKit Essentials family).
 * Firmware **1.6.49**, so the **legacy protocol** applies. Hardware 2.0.0.
 * Flags `0x10`: the "paired" bit (bit 1) is 0.
@@ -548,7 +550,7 @@ The app's parser (`ng.d` DeviceInformationFormat) accepts three forms:
 | 18–28 | serial number (11 characters) |
 | 29–36 | EUI-64 (= the device ID in the advertisement) |
 
-  This strip returned `2.0.0 / 1.6.49 / N23490K1500 / dc8e95fffe0b345f`.
+  This strip returned `2.0.0 / 1.6.49 / <serial> / <EUI-64>` (the serial number and EUI are replaced by placeholders here).
 * **TLV form** (other lengths): 1-byte type, 1-byte length. Types: `03` hardware, `04` serial, `06` EUI, `07` addressable, `08` country code, `09` setup key, `0A` discriminator, `0B` model, `0C` vendor ID, `0D` product ID, `1B` partner model (used when the model is `M1`/`M2`/`M3`), `1C` sub-model, `FE` firmware.
 * **JSON form** (MQTT devices): `firmwareVersion`, `hardwareVersion`, `serialNo`.
 
@@ -599,7 +601,7 @@ Whether the strip restores its last **on/off state** after a power cut. The app 
 Everything here is based on the verified behaviour of NL62 (legacy firmware). Items marked *open* are not yet known.
 
 **Discovery and setup**
-* `manifest.json` Bluetooth matcher: `{"manufacturer_id": 2059, "connectable": true}`. Parse the advertisement (§1) for model, firmware and EUI. Use the EUI (`device_id`) as the unique ID; the MAC also works for BLE.
+* `manifest.json` Bluetooth matcher: `{"manufacturer_id": 2059, "connectable": true}`. Parse the advertisement (§1) for model, firmware and EUI. Use the EUI (`device_id`) as the unique ID, not the Bluetooth address: a factory reset changes the address and keeps the EUI (verified 2026-10-19 on the NL62).
 * Config flow: ask for the 8-digit setup code, then pair (§3.2), then store the **auth token** (and for v3 also `client_id`) in the config entry. `NanoleafDevice.pair()` in the library is the reference. Pairing doesn't disturb the phone app.
 * Use HA's Bluetooth stack: `bleak_retry_connector.establish_connection` with the `BLEDevice` from HA. The library's handshake code is transport-agnostic. Dependencies: `cryptography`; `bleak` comes with HA.
 * Device registry: model from the advertisement (sub-model for `NLM0`), plus hardware, firmware and serial from `di` (§13).

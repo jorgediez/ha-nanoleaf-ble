@@ -101,7 +101,7 @@ async def test_device(hass: HomeAssistant, init_integration: MockConfigEntry) ->
     )
     assert len(devices) == 1
     device = devices[0]
-    assert device.name == "Secretlab MAGRGB BE3A"
+    assert device.name == "Secretlab MAGRGB 40G8"
     assert device.manufacturer == "Nanoleaf"
     assert device.model == "Secretlab MAGRGB"
     assert device.model_id == "NL62"

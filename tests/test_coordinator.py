@@ -11,7 +11,7 @@ from custom_components.nanoleaf_ble.coordinator import NanoleafCoordinator
 from custom_components.nanoleaf_ble.lib import default_scenes
 from custom_components.nanoleaf_ble.library import StripSceneRecord
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE
+from homeassistant.const import CONF_ADDRESS, STATE_OFF, STATE_ON, STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
@@ -256,7 +256,7 @@ async def test_scene_names_follow_their_content(
     """A stale record is dropped; a scene matching the library takes its name."""
     coordinator = _coordinator(init_integration)
     store = hass.data[DATA_STORE]
-    address = init_integration.unique_id
+    address = init_integration.data[CONF_ADDRESS]
     defaults = default_scenes("NL62")
 
     # The integration stored "Mine" as scene 2; the app then replaced it.

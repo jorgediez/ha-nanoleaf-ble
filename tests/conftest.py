@@ -23,6 +23,7 @@ from homeassistant.core import HomeAssistant
 
 from .common import (
     ADDRESS,
+    EUI,
     LOCAL_NAME,
     TOKEN,
     FakeLegacyStrip,
@@ -31,7 +32,7 @@ from .common import (
     make_service_info,
 )
 
-TITLE = "Secretlab MAGRGB BE3A"
+TITLE = "Secretlab MAGRGB 40G8"
 
 
 @pytest.fixture(autouse=True)
@@ -170,9 +171,7 @@ def entry_data(**overrides: Any) -> dict[str, Any]:
 @pytest.fixture
 def config_entry() -> MockConfigEntry:
     """Return the NL62's config entry."""
-    return MockConfigEntry(
-        domain=DOMAIN, title=TITLE, unique_id=ADDRESS, data=entry_data()
-    )
+    return MockConfigEntry(domain=DOMAIN, title=TITLE, unique_id=EUI, data=entry_data())
 
 
 @pytest.fixture
