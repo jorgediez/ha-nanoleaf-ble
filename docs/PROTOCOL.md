@@ -56,6 +56,8 @@ Source: `lg/C6437C` (BluetoothScanner).
 | 21 | n | Sub-model string, for `NL1D` / `NLM*` / 1D models (for `NLM0` partner devices it starts at **offset 19**, replacing the pair ID; e.g. `NL62`) |
 
 A packet of exactly 10 bytes is a different, shorter scan-result type.
+* **A factory reset changes the Bluetooth address, but not the device ID or the advertised name** (verified 2026-10-19 on the NL62, over two resets: the address changed each time, while bytes 11–18 and the name `Secretlab MAGRGB 40G8` stayed the same). Identify a strip by its device ID.
+* **After a reset the strip also advertises as a HomeKit accessory**, from a separate address: Apple manufacturer data (company `0x004C`), HomeKit type `0x06`, status flags `0x01` (not paired with HomeKit). It carries no Nanoleaf data; ignore it.
 * The **device name** used as the SRP username is `ScanRecord.getDeviceName()`, the advertised *Complete Local Name*.
 
 ---
@@ -599,7 +601,7 @@ Whether the strip restores its last **on/off state** after a power cut. The app 
 Everything here is based on the verified behaviour of NL62 (legacy firmware). Items marked *open* are not yet known.
 
 **Discovery and setup**
-* `manifest.json` Bluetooth matcher: `{"manufacturer_id": 2059, "connectable": true}`. Parse the advertisement (§1) for model, firmware and EUI. Use the EUI (`device_id`) as the unique ID; the MAC also works for BLE.
+* `manifest.json` Bluetooth matcher: `{"manufacturer_id": 2059, "connectable": true}`. Parse the advertisement (§1) for model, firmware and EUI. Use the EUI (`device_id`) as the unique ID, not the Bluetooth address: a factory reset changes the address and keeps the EUI (verified 2026-10-19 on the NL62).
 * Config flow: ask for the 8-digit setup code, then pair (§3.2), then store the **auth token** (and for v3 also `client_id`) in the config entry. `NanoleafDevice.pair()` in the library is the reference. Pairing doesn't disturb the phone app.
 * Use HA's Bluetooth stack: `bleak_retry_connector.establish_connection` with the `BLEDevice` from HA. The library's handshake code is transport-agnostic. Dependencies: `cryptography`; `bleak` comes with HA.
 * Device registry: model from the advertisement (sub-model for `NLM0`), plus hardware, firmware and serial from `di` (§13).

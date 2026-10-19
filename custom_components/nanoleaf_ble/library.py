@@ -246,6 +246,13 @@ class SceneStore:
         self._changed()
 
     @callback
+    def async_keep_devices(self, addresses: set[str]) -> None:
+        """Forget the strips at any other address."""
+        for address in set(self._devices) - addresses:
+            del self._devices[address]
+            self._changed()
+
+    @callback
     def async_remove_device(self, address: str) -> None:
         """Forget everything about a strip whose entry was removed."""
         if self._devices.pop(address, None) is not None:

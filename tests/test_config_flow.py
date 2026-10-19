@@ -28,6 +28,7 @@ from homeassistant.data_entry_flow import FlowResultType
 
 from .common import (
     ADDRESS,
+    EUI,
     TOKEN,
     FakeLegacyStrip,
     FakeV3Strip,
@@ -55,7 +56,7 @@ async def test_discovery_and_pairing(hass: HomeAssistant, bluetooth: Bluetooth) 
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == TITLE
-    assert result["result"].unique_id == ADDRESS
+    assert result["result"].unique_id == EUI
     data = result["data"]
     assert data[CONF_ADDRESS] == ADDRESS
     assert bytes.fromhex(data[CONF_TOKEN]) in bluetooth.tokens
@@ -186,7 +187,7 @@ async def test_firmware_5_needs_the_client_id(
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"][CONF_CLIENT_ID] == 7
-    assert result["title"] == "Nanoleaf Essentials Lightstrip BE3A"
+    assert result["title"] == "Nanoleaf Essentials Lightstrip 40G8"
     await hass.async_block_till_done()
     await hass.config_entries.async_unload(result["result"].entry_id)
 
@@ -338,3 +339,45 @@ async def test_options(
     assert init_integration.runtime_data is coordinator
     assert coordinator.update_interval.total_seconds() == 30
     assert bluetooth.connections == connections
+
+
+async def test_factory_reset_strip_keeps_its_entry(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """A reset strip has a new address and forgets the token (seen on the NL62).
+
+    Its device ID stays, so the entry follows it and asks to pair again,
+    instead of a second entry for the same strip.
+    """
+    new_address = "F5:BA:3C:27:D1:88"
+    bluetooth.tokens.clear()
+    bluetooth.service_info = make_service_info(address=new_address)
+    await bluetooth.connected.disconnect()
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_BLUETOOTH}, data=bluetooth.service_info
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    await hass.async_block_till_done()
+    assert hass.config_entries.async_entries(DOMAIN) == [init_integration]
+    assert init_integration.data[CONF_ADDRESS] == new_address
+
+    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
+    assert [flow["context"]["source"] for flow in flows] == ["reauth"]
+    result = await hass.config_entries.flow.async_configure(
+        flows[0]["flow_id"], {CONF_SETUP_CODE: "12345678", CONF_ADVANCED: {}}
+    )
+    assert result["reason"] == "reauth_successful"
+    await hass.async_block_till_done()
+    assert init_integration.state is ConfigEntryState.LOADED
+    assert init_integration.runtime_data.address == new_address
+    assert init_integration.runtime_data.connected
+
+
+async def test_title_falls_back_to_the_address(
+    hass: HomeAssistant, bluetooth: Bluetooth
+) -> None:
+    """Without an advertised name, Home Assistant reports the address as the name."""
+    bluetooth.service_info = make_service_info(name=ADDRESS)
+    result = await _discover(hass, bluetooth)
+    assert result["description_placeholders"]["name"] == "Secretlab MAGRGB BE3A"

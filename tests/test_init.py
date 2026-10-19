@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
 
 from .common import (
+    ADDRESS,
     TOKEN,
     FakeLegacyStrip,
     FakeV3Strip,
@@ -88,7 +89,7 @@ async def test_default_scenes_written_once(
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
     assert sorted(state.scenes) == [3, *range(244, 254)]
-    assert hass.data[DATA_STORE].defaults_applied(config_entry.unique_id)
+    assert hass.data[DATA_STORE].defaults_applied(ADDRESS)
 
     # Deleted again later: not rewritten on the next start.
     del state.scenes[244]
@@ -172,11 +173,11 @@ async def test_legacy_removal_forgets_scene_names(
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
     store = hass.data[DATA_STORE]
-    assert store.defaults_applied(config_entry.unique_id)
+    assert store.defaults_applied(ADDRESS)
     connections = bluetooth.connections
     await hass.config_entries.async_remove(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert not store.defaults_applied(config_entry.unique_id)
+    assert not store.defaults_applied(ADDRESS)
     # Legacy firmware cannot unpair, so removal does not even connect.
     assert bluetooth.connections == connections
 
@@ -258,3 +259,14 @@ async def test_verified_model_has_no_notice(
         )
         is None
     )
+
+
+async def test_setup_forgets_strips_no_entry_uses(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """A reset strip's old address leaves records behind; they are dropped."""
+    store = hass.data[DATA_STORE]
+    store.async_set_defaults_applied("AA:BB:CC:DD:EE:FF")
+    assert await hass.config_entries.async_reload(init_integration.entry_id)
+    assert not store.defaults_applied("AA:BB:CC:DD:EE:FF")
+    assert store.defaults_applied(ADDRESS)

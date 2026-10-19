@@ -28,7 +28,7 @@ from custom_components.nanoleaf_ble.lib.legacy import SharedCTR
 from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 
 ADDRESS = "DF:31:88:26:BE:3A"
-LOCAL_NAME = "Nanoleaf Light Bulb"
+LOCAL_NAME = "Secretlab MAGRGB 40G8"
 SETUP_CODE = "12345678"
 TOKEN = bytes.fromhex("0102030405060708")
 SERIAL = "N23490K1500"
