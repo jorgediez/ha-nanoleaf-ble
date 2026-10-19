@@ -67,7 +67,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> 
     entry.async_on_unload(
         hass.data[DATA_STORE].async_add_listener(coordinator.async_update_listeners)
     )
-    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     issue_id = f"experimental_firmware_{entry.entry_id}"
     if coordinator.ltpdu_v3:
@@ -115,13 +114,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> 
         f"{DOMAIN} default scenes {entry.entry_id}",
     )
     return True
-
-
-async def _async_options_updated(
-    hass: HomeAssistant, entry: NanoleafConfigEntry
-) -> None:
-    """Reload after a change: a new poll interval, or new firmware."""
-    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> bool:

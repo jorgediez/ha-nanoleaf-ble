@@ -277,7 +277,10 @@ async def test_reconfigure(
 
 
 async def test_reconfigure_while_loaded_uses_one_link(
-    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    bluetooth: Bluetooth,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """The check closes the entry's link first: two at once break both."""
     coordinator = init_integration.runtime_data
@@ -300,7 +303,10 @@ async def test_reconfigure_while_loaded_uses_one_link(
     await hass.async_block_till_done()
     assert bluetooth.overlaps == 0
     assert init_integration.state is ConfigEntryState.LOADED
+    assert init_integration.runtime_data is not coordinator  # reloaded
     assert init_integration.runtime_data.connected
+    # No update listener beside the helper's reload (breaks in HA 2026.12).
+    assert "update listener" not in caplog.text
 
 
 async def test_reconfigure_out_of_range_uses_stored_details(
@@ -315,7 +321,12 @@ async def test_reconfigure_out_of_range_uses_stored_details(
     assert result["errors"] == {"base": "cannot_connect"}
 
 
-async def test_options(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:
+async def test_options(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    """A new poll interval applies in place, without dropping the link."""
+    coordinator = init_integration.runtime_data
+    connections = bluetooth.connections
     result = await hass.config_entries.options.async_init(init_integration.entry_id)
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.options.async_configure(
@@ -324,4 +335,6 @@ async def test_options(hass: HomeAssistant, init_integration: MockConfigEntry) -
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
     assert init_integration.options == {CONF_POLL_INTERVAL: 30}
-    assert init_integration.runtime_data.update_interval.total_seconds() == 30
+    assert init_integration.runtime_data is coordinator
+    assert coordinator.update_interval.total_seconds() == 30
+    assert bluetooth.connections == connections

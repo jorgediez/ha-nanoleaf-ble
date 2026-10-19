@@ -9,6 +9,7 @@ already paired elsewhere (for example with scripts/nanoleaf_cli.py).
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import timedelta
 import logging
 from typing import Any
 
@@ -348,9 +349,11 @@ class NanoleafOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Set how often the strip is polled for changes made elsewhere."""
         if user_input is not None:
-            return self.async_create_entry(
-                data={CONF_POLL_INTERVAL: int(user_input[CONF_POLL_INTERVAL])}
-            )
+            interval = int(user_input[CONF_POLL_INTERVAL])
+            # Applied in place: a reload would drop the strip's link for nothing.
+            if (coordinator := _loaded_coordinator(self.config_entry)) is not None:
+                coordinator.update_interval = timedelta(seconds=interval)
+            return self.async_create_entry(data={CONF_POLL_INTERVAL: interval})
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(
