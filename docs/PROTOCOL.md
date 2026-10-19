@@ -523,7 +523,10 @@ I measured these by recording the strip on video and analysing the colour frame 
 | **Palette repeat flag** | The count byte is the **total number of copies** of that colour. A fade with speed 10 over "red ×3, blue" cycled every 4.0 s (3 s red, 1 s blue). If the count meant extra copies, the cycle would be 5 s. |
 | App palette quirk (consequence of the above) | The app writes count = number of *following* duplicates, and still emits those duplicates. So N identical colours are played as more than N (three blacks → "black ×2, black, black" = 4 blacks). `encode_palette_app()` reproduces this exactly, for faithful clones. |
 | **Highlight `mainColorProb`** | The probability (%) that each newly picked colour is the main colour (palette entry 1). Setting 90 → red 90.4 % of the time; setting 10 → red 2.8 % over a 30 s sample. On this strip highlight recolours the **whole strip at once**. |
-| Stripes | Behind this strip's diffuser, adjacent stripes blend into gradients; repeat counts widen that colour's share. `segment` controls stripe size (not quantified). |
+| Stripes | Behind this strip's diffuser, adjacent stripes blend into gradients; repeat counts widen that colour's share. `segment` is the length of each colour block, and the blocks move along the strip (watched, 2026-10-19): 5 gives thin alternating bands, 50 one block per colour, 200 fills the whole strip with one colour before the next moves in. A lower `transTime` moves them faster. |
+| Random | The whole strip changes colour at once, in no set order (watched, 2026-10-19). |
+| Flow | Several colours show at once, blended where they meet, and travel along the strip (watched, 2026-10-19). Direction 0 (left) travels from the connector end to the far end; 1 (right), 2 (up) and 3 (down) all travel from the far end to the connector. |
+| Loop | Fade with loop 0 plays the palette once and holds the last colour; with loop 1 it repeats. Flow keeps moving whatever the loop byte (watched, 2026-10-19). |
 | Response time | The strip sometimes acknowledges a preview only after a long delay (once 32 s), but the effect starts immediately. |
 
 ## 12. Unpairing (verified 2026-10-15)

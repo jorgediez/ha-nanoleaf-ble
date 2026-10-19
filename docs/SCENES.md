@@ -107,18 +107,22 @@ refused (see [When an action is refused](#when-an-action-is-refused)).
 | `flow` | `speed` (24), `delay` (0), `direction` (left), `loop` (on) |
 | `stripes` | `speed` (24), `direction` (left), `segment` (50) |
 
+All of this was checked by watching the strip.
+
 ### fade
 
-The whole strip shows one colour at a time and fades to the next, in palette
-order: `speed` is the length of each fade, and `delay` the hold on each colour.
+The whole strip shows one colour at a time and fades into the next, in palette
+order. `speed` is the length of each fade, and `delay` the hold on each colour.
 
-- `loop`: start again from the first colour after the last. It is on by
-  default, and that is what the integration has been tested with.
+- `loop` (default on): after the last colour, fade back to the first and go
+  round again, forever. With `loop: false` the strip plays the palette once
+  and **stays on the last colour**.
 
 ### random
 
-Like `fade`, but the next colour is picked at random from the palette instead
-of in order. `speed` and `delay` work as in `fade`.
+Like `fade`, the whole strip changes colour at once, but the next colour is
+picked at random from the palette, so there is no set order. `speed` and
+`delay` work as in `fade`.
 
 ### highlight
 
@@ -132,26 +136,35 @@ palette adds the occasional accent.
 
 ### flow
 
-The palette moves along the strip in the chosen direction. Three of the Secretlab default scenes (*Assassin's
-Creed*, *Dark Knight*, *Attack on Titan*) are flows.
+The palette travels along the strip, so several colours show at once, blending
+into each other where they meet: red, then yellow, then green, then blue, then
+pink, then red again, for a red-green-blue palette. Three of the Secretlab
+default scenes (*Assassin's Creed*, *Dark Knight*, *Attack on Titan*) are flows.
 
-- `direction`: `left` (default) or `right` picks which way the colours
-  travel along the strip. The app also offers `up` and `down`, made for other
-  Nanoleaf shapes; what they do on a strip has not been checked.
-- `loop`: as in `fade`.
+- `direction`: which way the colours travel.
+  - `left` (default): from the end where the cable connects towards the far
+    end.
+  - `right`: from the far end towards the cable end.
+  - `up` and `down`: the app offers them for other Nanoleaf shapes. On a
+    strip they both work like `right`.
+- `loop` makes no visible difference: a flow keeps going either way.
 
 ### stripes
 
-The strip is split into bands of the palette's colours. Behind the strip's
-diffuser, neighbouring bands blend into gradients. *Northern Lights* and two of
-the Secretlab defaults (*VALORANT*, *The Joker*) are stripes.
+The strip is split into blocks of the palette's colours, and the blocks move
+along it. Behind the strip's diffuser, neighbouring blocks blend into
+gradients. *Northern Lights* and two of the Secretlab defaults (*VALORANT*,
+*The Joker*) are stripes.
 
-- `segment` (1–255, default 50): the size of each band. A higher value gives
-  wider bands. The exact unit has not been measured.
+- `segment` (1–255, default 50): the length of each colour block.
+  - 5: thin bands of red and blue alternating quickly.
+  - 50: a block of red followed by a block of blue.
+  - 200: one colour fills the whole strip for a few seconds, then the next
+    one moves in and takes over.
+- `speed`: how fast the blocks move. As in the other effects, a higher value
+  is slower: 5 is far faster than 100. Northern Lights uses 20.
 - `direction`: as in `flow`.
-- `speed`: the transition time, as in the other effects, so a higher value is
-  slower. Northern Lights uses 20.
-- `repeat` on a colour widens its share of the bands.
+- `repeat` on a colour makes its blocks longer.
 - No `delay` and no `loop`.
 
 ## Recipes
