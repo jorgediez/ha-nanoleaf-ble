@@ -25,7 +25,7 @@ from bleak.exc import BleakError
 from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 
 from homeassistant.components import bluetooth
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
@@ -351,8 +351,6 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                 self.config_entry.title,
                 advertisement.firmware_version,
             )
-            # The entry's update listener reloads it, which matters when the
-            # update reaches firmware 5: another protocol, other entities.
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
                 data={
@@ -360,6 +358,12 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                     CONF_FIRMWARE: advertisement.firmware_version,
                 },
             )
+            # Reload, which matters when the update reaches firmware 5: another
+            # protocol, other entities. During setup there is nothing to reload.
+            if self.config_entry.state is ConfigEntryState.LOADED:
+                self.hass.config_entries.async_schedule_reload(
+                    self.config_entry.entry_id
+                )
         self.advertisement = advertisement
 
     @callback

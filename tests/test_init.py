@@ -184,12 +184,16 @@ async def test_legacy_removal_forgets_scene_names(
 async def test_firmware_update_in_advertisement(
     hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:
+    """New firmware reloads the entry: firmware 5 means another protocol."""
+    coordinator = init_integration.runtime_data
     data = bytearray(bluetooth.service_info.manufacturer_data[0x080B])
     data[4:7] = bytes([1, 7, 0])
     bluetooth.advertise(make_service_info(bytes(data), rssi=-71))
+    assert coordinator.rssi == -71
     await hass.async_block_till_done()
     assert init_integration.data[CONF_FIRMWARE] == "1.7.0"
-    assert init_integration.runtime_data.rssi == -71
+    assert init_integration.state is ConfigEntryState.LOADED
+    assert init_integration.runtime_data is not coordinator
 
 
 async def test_unrelated_advertisements_are_ignored(
