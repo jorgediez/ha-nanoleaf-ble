@@ -22,7 +22,8 @@ Developed and verified on a **Secretlab MAGRGB (NL62)**, firmware 1.6.49.
 > an **Essentials A19 bulb (NL45 or NL67)**, or a Matter Essentials **BR30,
 > GU10, Downlight or Ceiling lamp**, please tell us how it goes — a
 > [device report][device-report] with the diagnostics attached takes two
-> minutes, and is how support for your model gets confirmed.
+> minutes, and is how support for your model gets confirmed. Questions and
+> impressions are welcome in the [community forum thread][forum].
 
 Home Assistant can already reach Essentials lights through **HomeKit
 Controller** or **Matter**. What this integration adds is what those paths
@@ -421,7 +422,8 @@ proxy.
 
 Reports from models other than the NL62 are the most useful thing you can send,
 and firmware 5 and 1D devices need testers. See [CONTRIBUTING.md](CONTRIBUTING.md)
-for how to report, and how to work on the code.
+for how to report, and how to work on the code. For questions, ideas and
+setups, there is a [thread on the Home Assistant community forum][forum].
 
 ## Disclaimer
 
@@ -440,6 +442,7 @@ at your own risk.
 
 [device-report]: https://github.com/jorgediez/ha-nanoleaf-ble/issues/new?template=device_report.yml
 [ltpdu]: https://github.com/roysjosh/nanoleaf-ltpdu
+[forum]: https://community.home-assistant.io/t/nanoleaf-essentials-over-bluetooth-scenes-community-scenes-and-local-control-incl-secretlab-magrgb/1029610
 [hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
 [hacs-url]: https://github.com/hacs/integration
 [release-badge]: https://img.shields.io/github/v/release/jorgediez/ha-nanoleaf-ble

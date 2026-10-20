@@ -9,7 +9,8 @@ protocol, reconstructed from the Nanoleaf app and verified on one strip.
 Bugs, and "it works / doesn't work on my strip", are best as an
 [issue](https://github.com/jorgediez/ha-nanoleaf-ble/issues/new/choose): there is
 a form for bugs and one for telling us how the integration does on your device.
-Questions are welcome there too.
+Questions are welcome there too, or in the
+[thread on the Home Assistant community forum](https://community.home-assistant.io/t/nanoleaf-essentials-over-bluetooth-scenes-community-scenes-and-local-control-incl-secretlab-magrgb/1029610).
 
 What makes a report actionable:
 
