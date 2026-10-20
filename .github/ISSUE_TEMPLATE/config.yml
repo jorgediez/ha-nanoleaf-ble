@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Community forum thread
+    url: https://community.home-assistant.io/t/nanoleaf-essentials-over-bluetooth-scenes-community-scenes-and-local-control-incl-secretlab-magrgb/1029610
+    about: Questions, ideas and setups, on the Home Assistant community forum.
   - name: The protocol
     url: https://github.com/jorgediez/ha-nanoleaf-ble/blob/main/docs/PROTOCOL.md
     about: How the strips talk over Bluetooth, and what has been verified on hardware.
