@@ -150,6 +150,14 @@ def bluetooth(strip_state: StripState, mock_bluetooth: None) -> Generator[Blueto
             new_callable=PropertyMock,
             return_value={},
         ),
+        # Without this, the Bluetooth component opens a real Bluetooth socket on
+        # hosts whose kernel supports it, such as GitHub's Ubuntu 26 runners, and
+        # pytest-socket blocks it. Newer harnesses patch it the same way; the one
+        # for 2025.3 does not.
+        patch(
+            "habluetooth.channels.bluez.MGMTBluetoothCtl.setup",
+            AsyncMock(side_effect=OSError),
+        ),
     ):
         yield bt
 
