@@ -390,6 +390,35 @@ itself; on older firmware the strip keeps accepting its token until a factory
 reset, since that firmware has no unpair command. The scene library is kept in
 Home Assistant's storage (`.storage/nanoleaf_ble`) until you delete it.
 
+## Privacy
+
+* **Everything runs over Bluetooth**, through your adapters or ESPHome proxies.
+  Controlling a strip never touches the internet.
+* **The one internet service is Nanoleaf's community library**
+  (`my.nanoleaf.me`), and it is contacted only when you ask: a search (the
+  *Community search* box or the `search_community_scenes` action), or
+  previewing, saving or adding a community scene. It receives your search text
+  and filters, the key of the scene you picked, and a User-Agent naming the
+  integration, its version and this repository
+  (`ha-nanoleaf-ble/<version> (+https://github.com/jorgediez/ha-nanoleaf-ble)`).
+  Like any web request, it also sees your IP address. Downloads are then served
+  from Nanoleaf's storage on Amazon S3, which sees the same. No Nanoleaf account
+  is used.
+* **What Home Assistant stores:** in the config entry
+  (`.storage/core.config_entries`), the strip's address, model, firmware and
+  advertised name, its auth token and, on firmware 5, the client ID it paired
+  with. In `.storage/nanoleaf_ble`, the scene library and the names of the
+  scenes stored on each strip; community scenes keep their key and their
+  creator's display name, as Nanoleaf publishes it. Both files are part of
+  Home Assistant backups.
+* **The auth token works like a password for the strip:** anyone who has it and
+  is within Bluetooth range can control the strip. On firmware older than 5 it
+  stays valid after you remove the integration, until a factory reset (see
+  [Removal](#removal)).
+* **Diagnostics** redact the token, the Bluetooth address, the client ID, the
+  advertised name, the serial number and the device ID, and leave scene names
+  out.
+
 ## Icons
 
 Entity and action icons ship in `icons.json`. The brand tile is served from

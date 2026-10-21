@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import re
+from unittest.mock import patch
+
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 import voluptuous as vol
@@ -274,6 +277,22 @@ async def test_community_actions(
     with pytest.raises(HomeAssistantError) as err:
         await _call(hass, "search_community_scenes")
     assert err.value.translation_key == "community_failed"
+
+
+async def test_community_user_agent(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """The integration names itself and its project page, never another client."""
+    with patch(
+        "custom_components.nanoleaf_ble.coordinator.CommunityClient"
+    ) as client_class:
+        await init_integration.runtime_data.async_community_client()
+    user_agent = client_class.call_args.args[1]
+    assert re.fullmatch(
+        r"ha-nanoleaf-ble/\d+\.\d+\.\d+ "
+        r"\(\+https://github\.com/jorgediez/ha-nanoleaf-ble\)",
+        user_agent,
+    )
 
 
 async def test_community_needs_a_loaded_strip(

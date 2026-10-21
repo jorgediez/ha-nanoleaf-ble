@@ -49,6 +49,7 @@ from .const import (
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
     POWER_LOSS_POLL_EVERY,
+    PROJECT_URL,
     RECONNECT_DELAY,
     REFRESH_SOON,
 )
@@ -1031,11 +1032,15 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
     # ------------------------------------------------------------------ community
 
     async def async_community_client(self) -> CommunityClient:
-        """Return a client for the community scene library."""
+        """Return a client for the community scene library.
+
+        The User-Agent names the integration and where to reach its maintainer,
+        so Nanoleaf can tell who is calling an API it doesn't document.
+        """
         integration = await async_get_integration(self.hass, DOMAIN)
         return CommunityClient(
             async_get_clientsession(self.hass),
-            f"ha-nanoleaf-ble/{integration.version}",
+            f"ha-nanoleaf-ble/{integration.version} (+{PROJECT_URL})",
         )
 
     async def async_community_search(self, query: str) -> None:

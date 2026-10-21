@@ -217,11 +217,25 @@ async def test_search():
     assert headers["User-Agent"] == "ha-nanoleaf-ble/1.0.0"
 
 
-async def test_refused_user_agent_falls_back_to_the_apps():
-    session = _Session(_Response(403, None), _Response(200, {"animName": "x"}))
+async def test_download():
+    session = _Session(_Response(200, {"animName": "x"}))
     client = CommunityClient(session, "ha-nanoleaf-ble/1.0.0")  # type: ignore[arg-type]
     assert await client.download("a2V5") == {"animName": "x"}
-    assert session.calls[1][2]["User-Agent"] == "okhttp/4.12.0"
+    method, url, headers = session.calls[0]
+    assert (method, url) == (
+        "GET",
+        "https://my.nanoleaf.me/api/v1/effects/download/a2V5",
+    )
+    assert headers["User-Agent"] == "ha-nanoleaf-ble/1.0.0"
+
+
+async def test_refused_request_is_an_error():
+    """A refusal is reported, not retried under another client's User-Agent."""
+    session = _Session(_Response(403, None))
+    client = CommunityClient(session, "ha-nanoleaf-ble/1.0.0")  # type: ignore[arg-type]
+    with pytest.raises(NanoleafCloudError, match="HTTP 403"):
+        await client.download("a2V5")
+    assert len(session.calls) == 1
 
 
 async def test_cloud_errors():

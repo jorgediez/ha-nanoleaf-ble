@@ -66,7 +66,7 @@ from lib import (
 )
 
 CREDS_FILE = Path("nanoleaf_creds.json")
-USER_AGENT = "ha-nanoleaf-ble-cli"
+USER_AGENT = "ha-nanoleaf-ble-cli (+https://github.com/jorgediez/ha-nanoleaf-ble)"
 EFFECTS = {e.name.lower(): e for e in EffectType}
 
 
