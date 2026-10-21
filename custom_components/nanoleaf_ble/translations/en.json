@@ -207,10 +207,6 @@
     "unverified_model": {
       "title": "{name}: the {model} is not verified yet",
       "description": "The {model} speaks the same protocol as the Essentials Lightstrip (NL68), so it should work, but nobody has confirmed it on a real device yet.\n\nPlease tell us how it goes, even if everything works, with diagnostics attached: {device_report_url}"
-    },
-    "default_scenes_incomplete": {
-      "title": "{name}: not every default scene fits",
-      "description": "After pairing, the Nanoleaf app writes its default scenes to the strip. The integration did the same, but the strip is full, so these were left out: {scenes}.\n\nNothing was deleted to make room. Remove a scene you don't need, then press Restore default scenes on the device page."
     }
   },
   "services": {

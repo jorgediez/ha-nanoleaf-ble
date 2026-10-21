@@ -235,16 +235,6 @@ class SceneStore:
         if self._devices.get(address, {}).get("scenes", {}).pop(str(scene_id), None):
             self._changed()
 
-    def defaults_applied(self, address: str) -> bool:
-        """Return whether the app's default scenes were written to a strip."""
-        return bool(self._devices.get(address, {}).get("defaults_applied"))
-
-    @callback
-    def async_set_defaults_applied(self, address: str) -> None:
-        """Remember that the default scenes were written, as the app does per phone."""
-        self._device(address)["defaults_applied"] = True
-        self._changed()
-
     @callback
     def async_keep_devices(self, addresses: set[str]) -> None:
         """Forget the strips at any other address."""

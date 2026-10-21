@@ -34,7 +34,6 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
-from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -990,14 +989,12 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                 else self.data.current_scene,
             )
 
-    async def async_restore_default_scenes(
-        self, *, automatic: bool = False
-    ) -> list[int]:
+    async def async_restore_default_scenes(self) -> list[int]:
         """Write the app's default scenes that are missing, as space allows.
 
-        Nothing is ever deleted to make room. Return the IDs written. A manual
-        restore that cannot fit everything raises; the automatic one after
-        pairing raises a repair issue instead.
+        Only on request, from the button or the action: nothing is written to a
+        strip unasked. Nothing is ever deleted to make room. Return the IDs
+        written; raise if not everything fits.
         """
         self._require_scenes()
         defaults = default_scenes(self.model)
@@ -1027,52 +1024,9 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             self._async_set_data(scene_ids=(*self.data.scene_ids, *written))
             # The strip plays each scene it stores; one poll shows the last.
             self._async_refresh_soon()
-        left_out = [self.scene_name(sid) for sid in missing if sid not in written]
-        issue_id = f"default_scenes_incomplete_{self.config_entry.entry_id}"
-        if left_out and automatic:
-            ir.async_create_issue(
-                self.hass,
-                DOMAIN,
-                issue_id,
-                is_fixable=False,
-                severity=ir.IssueSeverity.WARNING,
-                translation_key="default_scenes_incomplete",
-                translation_placeholders={
-                    "name": self.config_entry.title,
-                    "scenes": ", ".join(left_out),
-                },
-            )
-        elif left_out:
+        if len(written) < len(missing):
             raise self._strip_full()
-        else:
-            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         return written
-
-    async def async_apply_default_scenes(self) -> None:
-        """Write the default scenes once after pairing, as the app does per phone."""
-        if (
-            not self.supports_scenes
-            or not default_scenes(self.model)
-            or self.store.defaults_applied(self.address)
-        ):
-            return
-        try:
-            written = await self.async_restore_default_scenes(automatic=True)
-        except HomeAssistantError as exc:
-            # Not marked as done: it is tried again at the next start.
-            _LOGGER.warning(
-                "Could not write the default scenes to %s: %s",
-                self.config_entry.title,
-                exc,
-            )
-            return
-        if written:
-            _LOGGER.info(
-                "Wrote %s default scene(s) to %s",
-                len(written),
-                self.config_entry.title,
-            )
-        self.store.async_set_defaults_applied(self.address)
 
     # ------------------------------------------------------------------ community
 

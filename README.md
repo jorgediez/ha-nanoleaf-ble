@@ -42,7 +42,7 @@ from Home Assistant without taking a slot — and no Thread border router.
 | A scene library in Home Assistant | your own scenes and community scenes, shared by all strips, previewed without using a slot |
 | Community scenes | search, preview, save and store scenes from the Nanoleaf library, keeping their names |
 | Scene slots | stores and removes scenes, keeps track of the 12-scene limit |
-| Default scenes | names the built-in scenes, and writes the app's Secretlab defaults when missing |
+| Default scenes | names the built-in scenes, and writes the app's Secretlab defaults back when you ask |
 | Restore on/off after power loss | a switch: after a power cut, a strip that was off stays off |
 | Identify | a button that blinks the strip |
 | Diagnostics | connection, firmware, hardware, serial number, model, protocol, signal strength |
@@ -198,8 +198,8 @@ strip at any time (*Add to strip*), and take it off again.
 
 * **Storing a scene plays it.** The strip starts a scene as soon as it is
   stored; Home Assistant sends only the store command, then reads the strip
-  1.5 s later so the light shows the scene playing. After the default scenes,
-  that is the last one written.
+  1.5 s later so the light shows the scene playing. After *Restore default
+  scenes*, that is the last one written.
 * **The app shows stored scenes as "Effect N".** Names live in Home Assistant,
   not on the strip, so the app cannot know them.
 * **Adding a community scene to the strip also saves it to the library.** The
@@ -214,11 +214,13 @@ Effect names follow the app: the built-in scenes by their names
 gave them. If the app later stores a different scene under the same number, the
 integration notices from the scene's content and stops using the old name.
 
-**First pairing.** After pairing, the Nanoleaf app writes six default scenes to
+**Default scenes.** After pairing, the Nanoleaf app writes six default scenes to
 Secretlab strips (Cyberpunk 2077, VALORANT, Assassin's Creed, Dark Knight, The
-Joker, Attack on Titan). If Home Assistant is the first to pair, it does the
-same, once — but only into free slots, and it never deletes anything to make
-room. Whatever does not fit is listed in a repair notice.
+Joker, Attack on Titan). Home Assistant doesn't write anything to a strip by
+itself, not even these: if Home Assistant was the first to pair, or some were
+deleted, press *Restore default scenes* (or call `restore_default_scenes`). It
+writes the missing ones into free slots and never deletes anything to make
+room; if they don't all fit, it writes what fits and says the strip is full.
 
 ## Actions
 

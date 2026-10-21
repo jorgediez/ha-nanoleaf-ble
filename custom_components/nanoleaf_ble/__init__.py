@@ -111,14 +111,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanoleafConfigEntry) -> 
     else:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Earlier versions wrote the default scenes by themselves after pairing, and
+    # raised this notice when they didn't all fit. Nothing raises it any more:
+    # the defaults are only written when the user asks.
+    ir.async_delete_issue(hass, DOMAIN, f"default_scenes_incomplete_{entry.entry_id}")
 
-    # Writing up to six scenes takes a few seconds; don't hold up the start.
-    entry.async_create_background_task(
-        hass,
-        coordinator.async_apply_default_scenes(),
-        f"{DOMAIN} default scenes {entry.entry_id}",
-    )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 

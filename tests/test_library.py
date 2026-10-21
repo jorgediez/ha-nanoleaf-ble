@@ -27,9 +27,8 @@ async def test_persists(hass: HomeAssistant, hass_storage: dict[str, Any]) -> No
     )
     assert item.name == "Forest walk"
     store.async_set_strip_scene("AA", 3, StripSceneRecord(item.name, "fp", item.id))
-    store.async_set_defaults_applied("AA")
     remove()
-    assert len(calls) == 3
+    assert len(calls) == 2
 
     store.async_rename(item.id, "Woods")
     # Write now rather than after the save delay.
@@ -40,16 +39,16 @@ async def test_persists(hass: HomeAssistant, hass_storage: dict[str, Any]) -> No
     assert reloaded.find("woods").creator == "Ana"
     assert reloaded.get(item.id).scene == default_scenes("NL62")[246]
     assert reloaded.strip_scenes("AA")[3].name == "Woods"
-    assert reloaded.defaults_applied("AA")
     assert reloaded.find_by_fingerprint(item.scene.fingerprint).id == item.id
 
     reloaded.async_delete(item.id)
     assert reloaded.strip_scenes("AA")[3].library_id is None
     reloaded.async_forget_strip_scene("AA", 3)
     reloaded.async_forget_strip_scene("AA", 3)  # already gone
+    reloaded.async_set_strip_scene("AA", 4, StripSceneRecord("Other", "fp"))
     reloaded.async_remove_device("AA")
     reloaded.async_remove_device("AA")
-    assert not reloaded.defaults_applied("AA")
+    assert not reloaded.strip_scenes("AA")
 
 
 async def test_unreadable_entries_are_dropped(
