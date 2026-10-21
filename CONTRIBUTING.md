@@ -118,7 +118,8 @@ in the event loop, comments that say why rather than what.
 2. Publish a GitHub release tagged `vX.Y.Z`, with user-facing notes. HACS
    installs from that tag.
 3. The **Release** workflow checks the tag matches both files, then runs the
-   tests and the HACS and hassfest validation against the tagged code.
+   tests and hassfest against the tagged code, and the HACS validation, which
+   checks the repository through GitHub's API rather than the tag.
 
 ## License
 
