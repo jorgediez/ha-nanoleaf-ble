@@ -442,7 +442,7 @@ The full Command Interface scene family (`07 xx`), all **POST to `ci`**. Request
 
 ## 8. Nanoleaf cloud scene library (verified 2026-10-15)
 
-Base URL `https://my.nanoleaf.me/api/` (`UrlProvider.getCloud2Url`). Search and download need **no authentication**; only `v1/effects/upload` takes an `Authorization` header. The API does not check the User-Agent either: search and download answered the same with the integration's own (`ha-nanoleaf-ble/<version>`, which it always sends), the app's (`okhttp/4.12.0`) and none at all (checked 2026-10-21).
+Base URL `https://my.nanoleaf.me/api/` (`UrlProvider.getCloud2Url`). Search and download need **no authentication**; only `v1/effects/upload` takes an `Authorization` header. The API does not check the User-Agent either: search and download answered the same with the integration's own (`ha-nanoleaf-ble/<version> (+<repository URL>)`, which it always sends), the app's (`okhttp/4.12.0`) and none at all (checked 2026-10-21).
 
 * **Search:** `POST v1/effects/search`, JSON body `{"page":1, "items":20, "query":"…", "sort":"recent"|"top", "type":"color"|"music", "featured":true|false, "tag":"…", "colorType":"HSB"|"CCT"}`. Returns `{"items":n, "data":[{effect_name, effect_type, creator{display_name…}, plugin{name}, palette[…], key, uuid, featured, downloads, …}]}`.
 * **Download:** `GET v1/effects/download/{key}`, where `key` = base64("creatorId/uuid") from the search result. Returns a 302 to a signed S3 URL holding the animation JSON: `animName`, `pluginUuid`, `pluginType`, `colorType`, `palette[{hue, saturation, brightness}]`, `pluginOptions[{name, value}]`, `loop`, `direction`, …
