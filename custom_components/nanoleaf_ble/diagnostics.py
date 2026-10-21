@@ -7,8 +7,9 @@ the last poll read.
 
 It leaves out what identifies a user or would let someone control the strip:
 the Bluetooth address, auth token, client ID, serial number and EUI are
-redacted, the EUI also inside the raw advertisement. Scene names are left out (the user chose them); the scene IDs and
-the size of the library are enough to debug with.
+redacted, the EUI also inside the raw advertisement. Scene names are left out
+(the user chose them); the scene IDs and the size of the library are enough to
+debug with.
 """
 
 from __future__ import annotations
