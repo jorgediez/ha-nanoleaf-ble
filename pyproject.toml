@@ -1,6 +1,6 @@
 [project]
 name = "ha-nanoleaf-ble"
-version = "1.0.0"
+version = "1.1.0"
 description = "Home Assistant integration for Nanoleaf Essentials lightstrips over Bluetooth LE"
 license = "MIT"
 requires-python = ">=3.13"
