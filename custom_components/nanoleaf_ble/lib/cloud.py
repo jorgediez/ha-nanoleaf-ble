@@ -9,7 +9,6 @@ byte against a scene the app stored.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import logging
 from typing import Any
 
 import aiohttp
@@ -17,12 +16,8 @@ import aiohttp
 from .exceptions import NanoleafCloudError
 from .scenes import Direction, EffectType, Scene, app_palette
 
-_LOGGER = logging.getLogger(__name__)
-
 CLOUD_API = "https://my.nanoleaf.me/api/"
 _TIMEOUT = aiohttp.ClientTimeout(total=30)
-#: Sent only if the API turns the honest User-Agent away.
-_APP_USER_AGENT = "okhttp/4.12.0"
 
 #: pluginUuid -> strip effect. Anything else becomes Random, as in the app.
 PLUGIN_EFFECTS: dict[str, EffectType] = {
@@ -70,28 +65,19 @@ class CommunityClient:
     async def _request(
         self, method: str, path: str, body: dict[str, Any] | None = None
     ) -> Any:
-        for user_agent in (self._user_agent, _APP_USER_AGENT):
-            try:
-                async with self._session.request(
-                    method,
-                    CLOUD_API + path,
-                    json=body,
-                    headers={"User-Agent": user_agent},
-                    timeout=_TIMEOUT,
-                ) as response:
-                    if response.status in (401, 403) and user_agent != _APP_USER_AGENT:
-                        _LOGGER.debug(
-                            "community API refused User-Agent %s (HTTP %s)",
-                            user_agent,
-                            response.status,
-                        )
-                        continue
-                    response.raise_for_status()
-                    # The download redirects to S3, which may label JSON loosely.
-                    return await response.json(content_type=None)
-            except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
-                raise NanoleafCloudError(f"{method} {path}: {exc}") from exc
-        raise NanoleafCloudError(f"{method} {path}: refused")  # pragma: no cover
+        try:
+            async with self._session.request(
+                method,
+                CLOUD_API + path,
+                json=body,
+                headers={"User-Agent": self._user_agent},
+                timeout=_TIMEOUT,
+            ) as response:
+                response.raise_for_status()
+                # The download redirects to S3, which may label JSON loosely.
+                return await response.json(content_type=None)
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            raise NanoleafCloudError(f"{method} {path}: {exc}") from exc
 
     async def search(
         self,
