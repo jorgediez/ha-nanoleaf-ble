@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
+from datetime import timedelta
+
 from bleak.exc import BleakError
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 from custom_components.nanoleaf_ble.const import CONF_FIRMWARE, DATA_STORE, DOMAIN
+from custom_components.nanoleaf_ble.library import StripSceneRecord
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.util import dt as dt_util
 
 from .common import (
     ADDRESS,
@@ -77,45 +85,44 @@ async def test_first_refresh_failure_disconnects(
     assert not bluetooth.connected.is_connected
 
 
-async def test_default_scenes_written_once(
+async def test_setup_writes_nothing_to_the_strip(
     hass: HomeAssistant, config_entry: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:
-    """Only the missing defaults, into free slots, and nothing deleted."""
+    """Setting up, and the polls after it, leave the strip exactly as it was.
+
+    Even with default scenes missing: those are written only when the user
+    presses Restore default scenes or calls the action.
+    """
     state = bluetooth.state
     for scene_id in (244, 245):
         del state.scenes[scene_id]
-    state.scenes[3] = state.scenes[246]  # a user scene must survive
+    before = asdict(state)
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert sorted(state.scenes) == [3, *range(244, 254)]
-    assert hass.data[DATA_STORE].defaults_applied(ADDRESS)
-
-    # Deleted again later: not rewritten on the next start.
-    del state.scenes[244]
-    await hass.config_entries.async_reload(config_entry.entry_id)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(minutes=5))
     await hass.async_block_till_done()
-    assert 244 not in state.scenes
+    assert asdict(state) == before
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 
-async def test_default_scenes_that_do_not_fit(
+async def test_setup_clears_the_old_default_scenes_notice(
     hass: HomeAssistant, config_entry: MockConfigEntry, bluetooth: Bluetooth
 ) -> None:
-    state = bluetooth.state
-    for scene_id in range(244, 250):
-        del state.scenes[scene_id]
-    for scene_id in range(4):  # four user scenes: room for four defaults
-        state.scenes[scene_id] = state.scenes[250]
+    """Earlier versions raised it after writing the defaults by themselves."""
+    issue_id = f"default_scenes_incomplete_{config_entry.entry_id}"
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id,
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key="default_scenes_incomplete",
+    )
     config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert sorted(state.scenes) == [0, 1, 2, 3, 244, 245, 246, 247, 250, 251, 252, 253]
-    issue = ir.async_get(hass).async_get_issue(
-        DOMAIN, f"default_scenes_incomplete_{config_entry.entry_id}"
-    )
-    assert issue is not None
-    assert issue.translation_placeholders["scenes"] == "The Joker, Attack on Titan"
+    assert ir.async_get(hass).async_get_issue(DOMAIN, issue_id) is None
     await hass.config_entries.async_unload(config_entry.entry_id)
 
 
@@ -173,11 +180,11 @@ async def test_legacy_removal_forgets_scene_names(
     assert await hass.config_entries.async_setup(config_entry.entry_id)
     await hass.async_block_till_done()
     store = hass.data[DATA_STORE]
-    assert store.defaults_applied(ADDRESS)
+    store.async_set_strip_scene(ADDRESS, 3, StripSceneRecord("Mine", "fp"))
     connections = bluetooth.connections
     await hass.config_entries.async_remove(config_entry.entry_id)
     await hass.async_block_till_done()
-    assert not store.defaults_applied(ADDRESS)
+    assert not store.strip_scenes(ADDRESS)
     # Legacy firmware cannot unpair, so removal does not even connect.
     assert bluetooth.connections == connections
 
@@ -266,7 +273,9 @@ async def test_setup_forgets_strips_no_entry_uses(
 ) -> None:
     """A reset strip's old address leaves records behind; they are dropped."""
     store = hass.data[DATA_STORE]
-    store.async_set_defaults_applied("AA:BB:CC:DD:EE:FF")
+    store.async_set_strip_scene("AA:BB:CC:DD:EE:FF", 3, StripSceneRecord("Old", "fp"))
+    # 250 is on the strip, so the current strip's record stays.
+    store.async_set_strip_scene(ADDRESS, 250, StripSceneRecord("Mine", "fp"))
     assert await hass.config_entries.async_reload(init_integration.entry_id)
-    assert not store.defaults_applied("AA:BB:CC:DD:EE:FF")
-    assert store.defaults_applied(ADDRESS)
+    assert not store.strip_scenes("AA:BB:CC:DD:EE:FF")
+    assert store.strip_scenes(ADDRESS)
