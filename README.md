@@ -1,6 +1,6 @@
 # Nanoleaf Essentials (Bluetooth) — Home Assistant integration
 
-[![hacs][hacs-badge]][hacs-url]
+[![marketplace][marketplace-badge]][marketplace-url]
 [![release][release-badge]][release-url]
 [![validate][validate-badge]][validate-url]
 [![tests][tests-badge]][tests-url]
@@ -117,15 +117,18 @@ fastest updates)**; the default, *Auto*, did not discover the strip in testing.
 This is separate from `bluetooth_proxy: active: true` in the proxy's YAML, which
 lets it make connections; both are needed.
 
-### HACS (custom repository)
+### Marketplace (recommended)
 
-[![Open your Home Assistant instance and open this repository in HACS.][my-hacs-badge]][my-hacs-url]
+[![Open your Home Assistant instance and open a repository inside the Marketplace.][my-marketplace-badge]][my-marketplace-url]
 
-Or by hand:
+1. In Home Assistant, go to *Settings → Marketplace*, search for **Nanoleaf
+   Essentials (Bluetooth)** and open it, or use the button above.
+2. Select **Install**. The setup opens once it's installed; if a restart is
+   needed, Home Assistant offers one.
 
-1. HACS → Integrations → ⋮ → **Custom repositories**
-2. Add `https://github.com/jorgediez/ha-nanoleaf-ble` as an **Integration**
-3. Install **Nanoleaf Essentials (Bluetooth)**, then restart Home Assistant
+On Home Assistant releases before 2026.11, use HACS instead: search for
+**Nanoleaf Essentials (Bluetooth)**, select **Download**, then restart Home
+Assistant. The button above opens it there too.
 
 ### Manual
 
@@ -380,8 +383,9 @@ logger:
 
 1. *Settings → Devices & Services → Nanoleaf Essentials (Bluetooth)*, then
    **⋮ → Delete** on each strip.
-2. If you installed through HACS, remove **Nanoleaf Essentials (Bluetooth)**
-   there; otherwise delete `config/custom_components/nanoleaf_ble/`.
+2. If you installed it from the Marketplace, open **Nanoleaf Essentials
+   (Bluetooth)** there and select **⋮ → Uninstall**. With HACS, remove it
+   there. Otherwise delete `config/custom_components/nanoleaf_ble/`.
 3. Restart Home Assistant.
 
 What is left on the strip: scenes you stored on it stay there (they keep
@@ -474,8 +478,8 @@ at your own risk.
 [device-report]: https://github.com/jorgediez/ha-nanoleaf-ble/issues/new?template=device_report.yml
 [ltpdu]: https://github.com/roysjosh/nanoleaf-ltpdu
 [forum]: https://community.home-assistant.io/t/nanoleaf-essentials-over-bluetooth-scenes-community-scenes-and-local-control-incl-secretlab-magrgb/1029610
-[hacs-badge]: https://img.shields.io/badge/HACS-Custom-41BDF5.svg
-[hacs-url]: https://github.com/hacs/integration
+[marketplace-badge]: https://img.shields.io/badge/Marketplace-Default-41BDF5.svg?logo=homeassistant&logoColor=white
+[marketplace-url]: https://www.home-assistant.io/integrations/marketplace/
 [release-badge]: https://img.shields.io/github/v/release/jorgediez/ha-nanoleaf-ble
 [release-url]: https://github.com/jorgediez/ha-nanoleaf-ble/releases
 [validate-badge]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/validate.yml/badge.svg
@@ -483,7 +487,7 @@ at your own risk.
 [tests-badge]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/tests.yml/badge.svg
 [tests-url]: https://github.com/jorgediez/ha-nanoleaf-ble/actions/workflows/tests.yml
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
-[my-hacs-badge]: https://my.home-assistant.io/badges/hacs_repository.svg
-[my-hacs-url]: https://my.home-assistant.io/redirect/hacs_repository/?owner=jorgediez&repository=ha-nanoleaf-ble&category=integration
+[my-marketplace-badge]: https://my.home-assistant.io/badges/marketplace_repository.svg
+[my-marketplace-url]: https://my.home-assistant.io/redirect/marketplace_repository/?owner=jorgediez&repository=ha-nanoleaf-ble&category=integration
 [my-setup-badge]: https://my.home-assistant.io/badges/config_flow_start.svg
 [my-setup-url]: https://my.home-assistant.io/redirect/config_flow_start/?domain=nanoleaf_ble

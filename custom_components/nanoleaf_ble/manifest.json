@@ -7,6 +7,9 @@
       "connectable": true
     }
   ],
+  "categories": [
+    "lighting.led_strips_controllers"
+  ],
   "codeowners": [
     "@jorgediez"
   ],
