@@ -4,10 +4,6 @@ from __future__ import annotations
 
 from bleak.exc import BleakError
 import pytest
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_fire_time_changed,
-)
 
 from custom_components.nanoleaf_ble.const import (
     CONF_ADVANCED,
@@ -37,6 +33,10 @@ from .common import (
     make_service_info,
 )
 from .conftest import TITLE, Bluetooth, entry_data
+from .harness import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 
 async def _discover(hass: HomeAssistant, bluetooth: Bluetooth):

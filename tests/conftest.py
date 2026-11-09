@@ -7,7 +7,6 @@ from typing import Any
 from unittest.mock import AsyncMock, PropertyMock, patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.nanoleaf_ble.const import (
     CONF_CLIENT_ID,
@@ -31,6 +30,7 @@ from .common import (
     make_ble_device,
     make_service_info,
 )
+from .harness import MockConfigEntry
 
 TITLE = "Secretlab MAGRGB 40G8"
 

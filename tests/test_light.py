@@ -5,10 +5,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_fire_time_changed,
-)
 
 from custom_components.nanoleaf_ble.const import DATA_STORE, DOMAIN
 from custom_components.nanoleaf_ble.lib import default_scenes
@@ -34,6 +30,10 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .conftest import Bluetooth
+from .harness import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 
 def light_id(hass: HomeAssistant, entry: MockConfigEntry) -> str:

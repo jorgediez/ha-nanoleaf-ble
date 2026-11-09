@@ -6,10 +6,6 @@ from dataclasses import asdict
 from datetime import timedelta
 
 from bleak.exc import BleakError
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_fire_time_changed,
-)
 
 from custom_components.nanoleaf_ble.const import CONF_FIRMWARE, DATA_STORE, DOMAIN
 from custom_components.nanoleaf_ble.library import StripSceneRecord
@@ -28,6 +24,10 @@ from .common import (
     make_service_info,
 )
 from .conftest import Bluetooth, entry_data
+from .harness import (
+    MockConfigEntry,
+    async_fire_time_changed,
+)
 
 
 async def test_setup_and_unload(

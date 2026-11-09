@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 
-from pytest_homeassistant_custom_component.common import MockConfigEntry
-
 from custom_components.nanoleaf_ble.diagnostics import (
     async_get_config_entry_diagnostics,
 )
@@ -14,6 +12,7 @@ from homeassistant.core import HomeAssistant
 
 from .common import ADDRESS, EUI, SERIAL, TOKEN
 from .conftest import Bluetooth
+from .harness import MockConfigEntry
 
 
 async def test_redacted(hass: HomeAssistant, init_integration: MockConfigEntry) -> None:

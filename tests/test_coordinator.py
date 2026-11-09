@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from bleak.exc import BleakError
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.nanoleaf_ble.const import DATA_STORE, DOMAIN
 from custom_components.nanoleaf_ble.coordinator import NanoleafCoordinator
@@ -18,6 +17,7 @@ from homeassistant.helpers import entity_registry as er
 
 from .common import FakeLegacyStrip
 from .conftest import Bluetooth
+from .harness import MockConfigEntry
 
 
 def _coordinator(entry: MockConfigEntry) -> NanoleafCoordinator:
