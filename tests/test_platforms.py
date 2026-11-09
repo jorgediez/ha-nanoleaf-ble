@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.nanoleaf_ble.const import DATA_STORE, DOMAIN
 from custom_components.nanoleaf_ble.lib import (
@@ -25,6 +24,7 @@ from .common import (
     make_service_info,
 )
 from .conftest import Bluetooth, entry_data
+from .harness import MockConfigEntry
 
 #: Every entity of a legacy strip: (platform, key). The light's key is None.
 ENTITIES = [

@@ -1,10 +1,14 @@
-# Pins the newest stable Home Assistant, and with it pytest, pytest-asyncio,
-# pytest-timeout, pytest-cov and PyYAML. Skip harness releases built on a beta.
-pytest-homeassistant-custom-component==0.13.372
+# Home Assistant's own test package, numbered like the release it pins, with
+# pytest and its plugins to match. Dependabot skips its betas. Its bluetooth
+# extra installs what core's bluetooth and usb components need.
+pytest-homeassistant[bluetooth]==2026.11.0
+# It doesn't install the coverage plugin. The min job leaves this line out: its
+# harness pins its own.
+pytest-cov==7.1.0
 ruff==0.17.3
-# The bluetooth component imports usb, whose requirements the harness does not
-# install. Pinned as core pins them (homeassistant/components/usb/manifest.json);
-# pyserial is what usb used before serialx, for the "min" job.
+# For the min job: its community harness doesn't install the requirements of
+# core's usb component, which bluetooth imports. These are what 2025.3's usb
+# needs. aiousbwatcher matches the bluetooth extra's pin, since both jobs install
+# this file; if a harness bump conflicts with it, follow the extra.
 aiousbwatcher==1.1.2
-serialx==1.11.0
 pyserial==3.5

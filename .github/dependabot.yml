@@ -14,8 +14,7 @@ updates:
     # One PR per package: a ruff bump needs a look at new rules and formatting,
     # a harness bump at the Home Assistant it pins, and either can land alone.
     ignore:
-      # Test-only requirements of core's usb component: they follow whatever
-      # Home Assistant pins, not their own releases.
+      # Test-only requirements of core's usb component for the min job: they
+      # follow what that Home Assistant release pins, not their own releases.
       - dependency-name: aiousbwatcher
-      - dependency-name: serialx
       - dependency-name: pyserial

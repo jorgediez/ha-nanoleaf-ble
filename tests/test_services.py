@@ -6,7 +6,6 @@ import re
 from unittest.mock import patch
 
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 import voluptuous as vol
 
 from custom_components.nanoleaf_ble.const import DATA_STORE, DOMAIN
@@ -22,6 +21,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 
 from .conftest import Bluetooth
+from .harness import MockConfigEntry
 
 ANIMATION = {
     "pluginUuid": "027842e4-e1d6-4a4c-a731-be74a1ebd4cf",
