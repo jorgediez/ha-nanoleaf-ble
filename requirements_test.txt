@@ -5,7 +5,7 @@ pytest-homeassistant[bluetooth]==2026.11.0
 # It doesn't install the coverage plugin. The min job leaves this line out: its
 # harness pins its own.
 pytest-cov==7.1.0
-ruff==0.17.3
+ruff==0.17.4
 # For the min job: its community harness doesn't install the requirements of
 # core's usb component, which bluetooth imports. These are what 2025.3's usb
 # needs. aiousbwatcher matches the bluetooth extra's pin, since both jobs install
