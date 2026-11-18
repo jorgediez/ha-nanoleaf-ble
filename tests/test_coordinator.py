@@ -315,10 +315,10 @@ async def test_community_cache_keeps_the_most_recent(
 
     async def downloaded(key: str) -> bool:
         before = mock_community.download.call_count
-        await coordinator.async_community_scene(key)
+        await coordinator.community.async_scene(key)
         return mock_community.download.call_count > before
 
-    with patch("custom_components.nanoleaf_ble.coordinator.COMMUNITY_CACHE_SIZE", 2):
+    with patch("custom_components.nanoleaf_ble.community.COMMUNITY_CACHE_SIZE", 2):
         assert await downloaded("a")
         assert await downloaded("b")
         assert not await downloaded("a")  # a is now the most recent

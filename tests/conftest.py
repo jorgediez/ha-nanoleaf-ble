@@ -200,7 +200,7 @@ def mock_community() -> Generator[AsyncMock]:
     """Patch the community client the integration creates."""
     client = AsyncMock()
     with patch(
-        "custom_components.nanoleaf_ble.coordinator.CommunityClient",
+        "custom_components.nanoleaf_ble.community.CommunityClient",
         return_value=client,
     ):
         yield client

@@ -291,9 +291,9 @@ async def test_community_user_agent(
 ) -> None:
     """The integration names itself and its project page, never another client."""
     with patch(
-        "custom_components.nanoleaf_ble.coordinator.CommunityClient"
+        "custom_components.nanoleaf_ble.community.CommunityClient"
     ) as client_class:
-        await init_integration.runtime_data.async_community_client()
+        await init_integration.runtime_data.community.async_client()
     user_agent = client_class.call_args.args[1]
     assert re.fullmatch(
         r"ha-nanoleaf-ble/\d+\.\d+\.\d+ "
