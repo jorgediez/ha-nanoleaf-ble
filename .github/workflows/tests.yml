@@ -33,6 +33,11 @@ jobs:
           # Oldest supported release, as in hacs.json. Dependabot only bumps
           # requirements_test.txt, so this pin stays put. pytest-homeassistant
           # starts at 2026.11, so this is the community harness it replaced.
+          # When the minimum goes up, also update:
+          # - manifest.json: the bleak and bleak-retry-connector minimums, to
+          #   the versions the new minimum's bluetooth integration pins.
+          # - services.py: drop _EXTRACT_TAKES_HASS once the minimum is 2026.9
+          #   or newer (its helpers then take only the call).
           - name: min  # 2025.3
             python: "3.13"
             harness: "pytest-homeassistant-custom-component==0.13.221"
