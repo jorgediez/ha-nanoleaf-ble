@@ -290,9 +290,10 @@ data:
 | `save_community_scene` | optional | saves to the library (optionally `name`), and with `add_to_strip` stores it on the strips |
 | `restore_default_scenes` | required | writes back the Secretlab defaults that are missing |
 
-*Required* strips go in `target:`. For the two *optional* ones, give them as
-`entity_id` under `data:` (the **Strips** field in the UI), or as a `target:`;
-both work.
+*Required* strips go in `target:`, as their lights, their devices, or areas,
+floors or labels that include them; anything else those hold is skipped. For
+the two *optional* ones, give them as `entity_id` under `data:` (the **Strips**
+field in the UI), or as a `target:`; both work.
 
 For every effect, the colour formats, what speed and delay mean, and ready-made
 recipes, see **[docs/SCENES.md](docs/SCENES.md)**. In short:

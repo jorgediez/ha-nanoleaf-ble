@@ -68,6 +68,8 @@ preview_scene:
     entity:
       integration: nanoleaf_ble
       domain: light
+    device:
+      integration: nanoleaf_ble
   fields:
     effect:
       required: true
@@ -92,6 +94,8 @@ add_scene_to_strip:
     entity:
       integration: nanoleaf_ble
       domain: light
+    device:
+      integration: nanoleaf_ble
   fields:
     scene:
       required: true
@@ -103,6 +107,8 @@ remove_scene_from_strip:
     entity:
       integration: nanoleaf_ble
       domain: light
+    device:
+      integration: nanoleaf_ble
   fields:
     scene:
       required: true
@@ -147,6 +153,8 @@ preview_community_scene:
     entity:
       integration: nanoleaf_ble
       domain: light
+    device:
+      integration: nanoleaf_ble
   fields:
     key:
       required: true
@@ -180,3 +188,5 @@ restore_default_scenes:
     entity:
       integration: nanoleaf_ble
       domain: light
+    device:
+      integration: nanoleaf_ble

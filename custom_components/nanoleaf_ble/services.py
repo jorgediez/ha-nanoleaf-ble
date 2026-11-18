@@ -1,19 +1,28 @@
 """Actions: create, preview and manage scenes, and use the community library.
 
-Actions that touch a strip target its light entity. Library actions (rename,
-delete) need no target, since the library is shared by every strip.
+Actions that touch a strip take any target: its light, its device, or an
+area, floor or label that includes it. Library actions (rename, delete) need no
+target, since the library is shared by every strip.
 """
 
 from __future__ import annotations
 
 import colorsys
 from functools import partial
+import inspect
 from typing import Any
 
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import ATTR_ENTITY_ID
+from homeassistant.const import (
+    ATTR_AREA_ID,
+    ATTR_DEVICE_ID,
+    ATTR_ENTITY_ID,
+    ATTR_FLOOR_ID,
+    ATTR_LABEL_ID,
+    Platform,
+)
 from homeassistant.core import (
     HomeAssistant,
     ServiceCall,
@@ -22,7 +31,11 @@ from homeassistant.core import (
     callback,
 )
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import (
+    config_validation as cv,
+    entity_registry as er,
+    service,
+)
 
 from .const import (
     ATTR_ADD_TO_STRIP,
@@ -106,8 +119,24 @@ SCENE_FIELDS = {
         vol.Coerce(int), vol.Range(0, 100)
     ),
 }
-TARGET = {vol.Required(ATTR_ENTITY_ID): cv.entity_ids}
-OPTIONAL_TARGET = {vol.Optional(ATTR_ENTITY_ID): cv.entity_ids}
+#: Every way to name strips: entity, device, area, floor, label (and, from
+#: 2026.11, exclude). Whether one is required is checked when the action runs,
+#: so a missing target gets this integration's message.
+TARGET = cv.TARGET_SERVICE_FIELDS
+OPTIONAL_TARGET = cv.TARGET_SERVICE_FIELDS
+TARGET_KEYS = (
+    ATTR_ENTITY_ID,
+    ATTR_DEVICE_ID,
+    ATTR_AREA_ID,
+    ATTR_FLOOR_ID,
+    ATTR_LABEL_ID,
+)
+
+# Home Assistant 2025.x takes hass before the call; later releases (2026.9 at
+# the latest) take only the call. Drop this once hacs.json's minimum does.
+_EXTRACT_TAKES_HASS = (
+    "hass" in inspect.signature(service.async_extract_entity_ids).parameters
+)
 
 CREATE_SCENE_SCHEMA = vol.Schema(
     {
@@ -163,11 +192,33 @@ def _scene_from_call(data: dict[str, Any]) -> Scene:
         ) from exc
 
 
-def _coordinators(hass: HomeAssistant, call: ServiceCall) -> list[NanoleafCoordinator]:
-    """Return the coordinators of the targeted strips."""
+def _named(value: Any) -> list[str]:
+    """Return the ids a target key names; "none" and empty names nothing."""
+    if value is None or value == "none":
+        return []
+    return list(cv.ensure_list(value))
+
+
+async def _target_entity_ids(hass: HomeAssistant, call: ServiceCall) -> set[str]:
+    """Return the entities the target reaches, after any exclude."""
+    if _EXTRACT_TAKES_HASS:
+        return await service.async_extract_entity_ids(hass, call)
+    return await service.async_extract_entity_ids(call)
+
+
+async def _coordinators(
+    hass: HomeAssistant, call: ServiceCall
+) -> list[NanoleafCoordinator]:
+    """Return the coordinators of the targeted strips.
+
+    Lights named directly must be strips that are loaded. Devices, areas,
+    floors and labels may also hold other things, which are skipped, and strips
+    that are not loaded, which are skipped too.
+    """
+    if not any(_named(call.data.get(key)) for key in TARGET_KEYS):
+        return []
     registry = er.async_get(hass)
-    coordinators: list[NanoleafCoordinator] = []
-    for entity_id in call.data.get(ATTR_ENTITY_ID) or []:
+    for entity_id in _named(call.data.get(ATTR_ENTITY_ID)):
         entry_id = (
             entity.config_entry_id
             if (entity := registry.async_get(entity_id)) is not None
@@ -184,15 +235,36 @@ def _coordinators(hass: HomeAssistant, call: ServiceCall) -> list[NanoleafCoordi
                 translation_key="not_a_strip",
                 translation_placeholders={"entity_id": entity_id},
             )
-        if entry.runtime_data not in coordinators:
+    # Entities rather than config entries, so that a strip whose light is
+    # excluded is left out even when its device is in a targeted area.
+    coordinators: list[NanoleafCoordinator] = []
+    for entity_id in sorted(await _target_entity_ids(hass, call)):
+        entity = registry.async_get(entity_id)
+        if (
+            entity is None
+            or entity.platform != DOMAIN
+            or entity.domain != Platform.LIGHT
+            or entity.config_entry_id is None
+        ):
+            continue
+        entry = hass.config_entries.async_get_entry(entity.config_entry_id)
+        if (
+            entry is not None
+            and entry.state is ConfigEntryState.LOADED
+            and entry.runtime_data not in coordinators
+        ):
             coordinators.append(entry.runtime_data)
+    if not coordinators:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN, translation_key="no_loaded_strip_targeted"
+        )
     return coordinators
 
 
-def _require_targets(
+async def _require_targets(
     hass: HomeAssistant, call: ServiceCall
 ) -> list[NanoleafCoordinator]:
-    coordinators = _coordinators(hass, call)
+    coordinators = await _coordinators(hass, call)
     if not coordinators:
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="target_required"
@@ -213,7 +285,7 @@ async def _create_scene(hass: HomeAssistant, call: ServiceCall) -> None:
     scene = _scene_from_call(dict(call.data))
     name = call.data[ATTR_NAME]
     _check_name_free(hass, name)
-    coordinators = _coordinators(hass, call)
+    coordinators = await _coordinators(hass, call)
     if (call.data[ATTR_ADD_TO_STRIP] or call.data[ATTR_PLAY]) and not coordinators:
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="target_required"
@@ -233,19 +305,19 @@ async def _create_scene(hass: HomeAssistant, call: ServiceCall) -> None:
 
 async def _preview_scene(hass: HomeAssistant, call: ServiceCall) -> None:
     scene = _scene_from_call(dict(call.data))
-    for coordinator in _require_targets(hass, call):
+    for coordinator in await _require_targets(hass, call):
         await coordinator.async_preview(scene, None)
 
 
 async def _add_scene_to_strip(hass: HomeAssistant, call: ServiceCall) -> None:
-    for coordinator in _require_targets(hass, call):
+    for coordinator in await _require_targets(hass, call):
         await coordinator.async_add_to_strip(
             coordinator.require_library_scene(call.data[ATTR_SCENE])
         )
 
 
 async def _remove_scene_from_strip(hass: HomeAssistant, call: ServiceCall) -> None:
-    for coordinator in _require_targets(hass, call):
+    for coordinator in await _require_targets(hass, call):
         await coordinator.async_remove_from_strip(call.data[ATTR_SCENE])
 
 
@@ -309,13 +381,13 @@ async def _search_community_scenes(
 
 
 async def _preview_community_scene(hass: HomeAssistant, call: ServiceCall) -> None:
-    for coordinator in _require_targets(hass, call):
+    for coordinator in await _require_targets(hass, call):
         scene, _warnings = await coordinator.async_community_scene(call.data[ATTR_KEY])
         await coordinator.async_preview(scene, None)
 
 
 async def _save_community_scene(hass: HomeAssistant, call: ServiceCall) -> None:
-    coordinators = _coordinators(hass, call)
+    coordinators = await _coordinators(hass, call)
     if call.data[ATTR_ADD_TO_STRIP] and not coordinators:
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="target_required"
@@ -330,7 +402,7 @@ async def _save_community_scene(hass: HomeAssistant, call: ServiceCall) -> None:
 
 
 async def _restore_default_scenes(hass: HomeAssistant, call: ServiceCall) -> None:
-    for coordinator in _require_targets(hass, call):
+    for coordinator in await _require_targets(hass, call):
         await coordinator.async_restore_default_scenes()
 
 

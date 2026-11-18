@@ -187,7 +187,10 @@
       "message": "{entity_id} is not a Nanoleaf Essentials (Bluetooth) light that is loaded."
     },
     "target_required": {
-      "message": "Choose the strip (its light entity) to do this on."
+      "message": "Choose the strip to do this on: its device, its light, or an area, floor or label that includes it."
+    },
+    "no_loaded_strip_targeted": {
+      "message": "None of the chosen targets is a Nanoleaf Essentials (Bluetooth) strip that is loaded."
     },
     "no_strips_loaded": {
       "message": "No Nanoleaf Essentials (Bluetooth) strip is loaded."

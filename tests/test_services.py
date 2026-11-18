@@ -18,7 +18,14 @@ from custom_components.nanoleaf_ble.lib import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import (
+    area_registry as ar,
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+    floor_registry as fr,
+    label_registry as lr,
+)
 
 from .conftest import Bluetooth
 from .harness import MockConfigEntry
@@ -335,5 +342,189 @@ def test_optional_strips_are_a_field_not_a_target():
     for name in ("create_scene", "save_community_scene"):
         assert "target" not in services[name], name
         assert "entity_id" in services[name]["fields"], name
-    for name in ("preview_scene", "add_scene_to_strip", "restore_default_scenes"):
-        assert "target" in services[name], name
+    for name in TARGETED_ACTIONS:
+        assert services[name]["target"] == {
+            "entity": {"integration": DOMAIN, "domain": "light"},
+            "device": {"integration": DOMAIN},
+        }, name
+
+
+TARGETED_ACTIONS = (
+    "preview_scene",
+    "add_scene_to_strip",
+    "remove_scene_from_strip",
+    "preview_community_scene",
+    "restore_default_scenes",
+)
+
+
+def _targets(hass: HomeAssistant, entry: MockConfigEntry) -> dict[str, str]:
+    """Put the strip in an area on a floor and label its light.
+
+    Return one id per kind of target, each of them reaching the strip.
+    """
+    light = _light(hass, entry)
+    devices = dr.async_get(hass)
+    (device,) = dr.async_entries_for_config_entry(devices, entry.entry_id)
+    floor = fr.async_get(hass).async_create("Office")
+    area = ar.async_get(hass).async_create("Desk", floor_id=floor.floor_id)
+    devices.async_update_device(device.id, area_id=area.id)
+    label = lr.async_get(hass).async_create("Strips")
+    er.async_get(hass).async_update_entity(light, labels={label.label_id})
+    return {
+        "entity_id": light,
+        "device_id": device.id,
+        "area_id": area.id,
+        "floor_id": floor.floor_id,
+        "label_id": label.label_id,
+    }
+
+
+def _other_light(hass: HomeAssistant, area_id: str) -> str:
+    """Add another integration's light to the area."""
+    other = MockConfigEntry(domain="other")
+    other.add_to_hass(hass)
+    entities = er.async_get(hass)
+    entity = entities.async_get_or_create("light", "other", "lamp", config_entry=other)
+    entities.async_update_entity(entity.entity_id, area_id=area_id)
+    return entity.entity_id
+
+
+@pytest.mark.parametrize(
+    "kind", ["entity_id", "device_id", "area_id", "floor_id", "label_id"]
+)
+@pytest.mark.parametrize(
+    "action", [*TARGETED_ACTIONS, "create_scene", "save_community_scene"]
+)
+async def test_every_kind_of_target(
+    hass: HomeAssistant,
+    init_integration: MockConfigEntry,
+    bluetooth: Bluetooth,
+    mock_community,
+    action: str,
+    kind: str,
+) -> None:
+    """Every action that takes strips finds them through any kind of target."""
+    targets = _targets(hass, init_integration)
+    _other_light(hass, targets["area_id"])
+    target = {kind: targets[kind]}
+    store = hass.data[DATA_STORE]
+    mock_community.download.return_value = ANIMATION
+    fade = {"effect": "fade", "colours": [[255, 0, 0]]}
+
+    if action == "preview_scene":
+        await _call(hass, action, **target, **fade)
+        assert bluetooth.state.current == 0xFF
+    elif action == "add_scene_to_strip":
+        store.async_add("Mine", default_scenes("NL62")[245])
+        await _call(hass, action, **target, scene="Mine")
+        assert 1 in bluetooth.state.scenes
+    elif action == "remove_scene_from_strip":
+        store.async_add("Mine", default_scenes("NL62")[245])
+        await _call(
+            hass, "add_scene_to_strip", entity_id=targets["entity_id"], scene="Mine"
+        )
+        await _call(hass, action, **target, scene="Mine")
+        assert 1 not in bluetooth.state.scenes
+    elif action == "preview_community_scene":
+        await _call(hass, action, **target, key="key-a")
+        assert bluetooth.state.current == 0xFF
+    elif action == "restore_default_scenes":
+        del bluetooth.state.scenes[248]
+        await init_integration.runtime_data.async_refresh()
+        await _call(hass, action, **target)
+        assert 248 in bluetooth.state.scenes
+    elif action == "create_scene":
+        await _call(hass, action, **target, name="Mine", add_to_strip=True, **fade)
+        assert 1 in bluetooth.state.scenes
+    else:
+        await _call(hass, action, **target, key="key-a", add_to_strip=True)
+        assert 1 in bluetooth.state.scenes
+
+
+async def test_a_strip_named_twice_is_done_once(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    targets = _targets(hass, init_integration)
+    hass.data[DATA_STORE].async_add("Mine", default_scenes("NL62")[245])
+    await _call(hass, "add_scene_to_strip", **targets, scene="Mine")
+    assert 1 in bluetooth.state.scenes
+    assert 2 not in bluetooth.state.scenes
+
+
+async def test_a_target_without_a_strip(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """An area holding only other things is an error, but not about them."""
+    area = ar.async_get(hass).async_create("Hall")
+    _other_light(hass, area.id)
+    with pytest.raises(ServiceValidationError) as err:
+        await _call(hass, "restore_default_scenes", area_id=area.id)
+    assert err.value.translation_key == "no_loaded_strip_targeted"
+    with pytest.raises(ServiceValidationError) as err:
+        await _call(hass, "restore_default_scenes", device_id="none")
+    assert err.value.translation_key == "target_required"
+
+
+async def test_a_light_named_directly_must_be_a_strip(
+    hass: HomeAssistant, init_integration: MockConfigEntry
+) -> None:
+    """Unlike one in an area, another light named directly is an error."""
+    targets = _targets(hass, init_integration)
+    lamp = _other_light(hass, targets["area_id"])
+    with pytest.raises(ServiceValidationError) as err:
+        await _call(
+            hass, "restore_default_scenes", entity_id=[targets["entity_id"], lamp]
+        )
+    assert err.value.translation_key == "not_a_strip"
+
+
+async def test_unloaded_strip_through_its_device_or_area(
+    hass: HomeAssistant, config_entry: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(config_entry.entry_id)
+    targets = _targets(hass, config_entry)
+    await hass.config_entries.async_unload(config_entry.entry_id)
+    for kind in ("device_id", "area_id"):
+        with pytest.raises(ServiceValidationError) as err:
+            await _call(hass, "restore_default_scenes", **{kind: targets[kind]})
+        assert err.value.translation_key == "no_loaded_strip_targeted", kind
+
+
+@pytest.mark.skipif(
+    "exclude" not in cv.TARGET_SERVICE_FIELDS,
+    reason="targets take exclude from Home Assistant 2026.11",
+)
+async def test_exclude(
+    hass: HomeAssistant, init_integration: MockConfigEntry, bluetooth: Bluetooth
+) -> None:
+    targets = _targets(hass, init_integration)
+    lamp = _other_light(hass, targets["area_id"])
+    del bluetooth.state.scenes[248]
+    await init_integration.runtime_data.async_refresh()
+
+    # Excluding something else leaves the strip targeted.
+    await _call(
+        hass,
+        "restore_default_scenes",
+        area_id=targets["area_id"],
+        exclude={"entity_id": [lamp]},
+    )
+    assert 248 in bluetooth.state.scenes
+
+    # Excluding the strip, by its device or by its light's label, leaves nothing.
+    for exclude in (
+        {"device_id": [targets["device_id"]]},
+        {"label_id": [targets["label_id"]]},
+    ):
+        with pytest.raises(ServiceValidationError) as err:
+            await _call(
+                hass,
+                "preview_scene",
+                floor_id=targets["floor_id"],
+                exclude=exclude,
+                effect="fade",
+                colours=[[255, 0, 0]],
+            )
+        assert err.value.translation_key == "no_loaded_strip_targeted", exclude
