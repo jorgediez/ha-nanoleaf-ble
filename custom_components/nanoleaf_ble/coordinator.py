@@ -98,6 +98,10 @@ LOCATION_STRIP = "strip"
 LOCATION_LIBRARY = "library"
 LOCATION_BOTH = "strip + library"
 
+#: Community scenes kept after download, so that previewing one and then
+#: saving it downloads it once. The least recently used go first.
+COMMUNITY_CACHE_SIZE = 32
+
 
 @dataclass(frozen=True, slots=True)
 class NanoleafData:
@@ -147,8 +151,22 @@ def unique_id_for(advertisement: AdvertisementInfo, address: str) -> str:
 
 
 def advertisement_from_entry(data: dict[str, Any]) -> AdvertisementInfo:
-    """Rebuild the advertisement fields the session needs from entry data."""
-    firmware = tuple(int(part) for part in str(data[CONF_FIRMWARE]).split("."))
+    """Rebuild the advertisement fields the session needs from entry data.
+
+    A stored firmware that is not a version (a damaged or hand-edited entry)
+    reads as 0.0.0, the legacy protocol, rather than failing setup. The strip's
+    advertisement then stores the real one: at setup if it has been heard
+    already, or when it is, reloading the entry.
+    """
+    try:
+        firmware = tuple(int(part) for part in str(data[CONF_FIRMWARE]).split("."))
+    except (KeyError, ValueError):
+        _LOGGER.warning(
+            "Stored firmware %r is not a version; using 0.0.0 until the strip "
+            "advertises its own",
+            data.get(CONF_FIRMWARE),
+        )
+        firmware = ()
     return AdvertisementInfo(
         advertised_model=data[CONF_MODEL],
         firmware=(*firmware, 0, 0, 0)[:3],  # type: ignore[arg-type]
@@ -1056,17 +1074,21 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         self.async_update_listeners()
 
     async def async_community_scene(self, key: str) -> tuple[Scene, list[str]]:
-        """Download and convert a community scene (cached for the session)."""
-        if key not in self._community_cache:
+        """Download and convert a community scene (see COMMUNITY_CACHE_SIZE)."""
+        if (converted := self._community_cache.pop(key, None)) is None:
             client = await self.async_community_client()
             try:
                 animation = await client.download(key)
-                self._community_cache[key] = scene_from_animation(animation)
+                converted = scene_from_animation(animation)
             except NanoleafCloudError as exc:
                 raise self.community_error(exc) from exc
-            for warning in self._community_cache[key][1]:
+            for warning in converted[1]:
                 _LOGGER.info("Community scene %s: %s", key, warning)
-        return self._community_cache[key]
+        # Dicts keep insertion order: re-adding the key makes it the newest.
+        self._community_cache[key] = converted
+        while len(self._community_cache) > COMMUNITY_CACHE_SIZE:
+            del self._community_cache[next(iter(self._community_cache))]
+        return converted
 
     def community_result(self, key: str | None) -> CommunityScene | None:
         """Return a search result by key."""

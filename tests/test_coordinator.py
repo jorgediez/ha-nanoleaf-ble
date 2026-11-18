@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from bleak.exc import BleakError
 import pytest
 
@@ -300,3 +302,26 @@ async def test_duplicate_names_are_made_unique(
     effects = list(_coordinator(init_integration).effects)
     assert "Cloud9" in effects
     assert "cloud9 (2)" in effects
+
+
+async def test_community_cache_keeps_the_most_recent(
+    hass: HomeAssistant, init_integration: MockConfigEntry, mock_community
+) -> None:
+    mock_community.download.return_value = {
+        "pluginUuid": "027842e4-e1d6-4a4c-a731-be74a1ebd4cf",
+        "palette": [{"hue": 120, "saturation": 100, "brightness": 100}],
+    }
+    coordinator = _coordinator(init_integration)
+
+    async def downloaded(key: str) -> bool:
+        before = mock_community.download.call_count
+        await coordinator.async_community_scene(key)
+        return mock_community.download.call_count > before
+
+    with patch("custom_components.nanoleaf_ble.coordinator.COMMUNITY_CACHE_SIZE", 2):
+        assert await downloaded("a")
+        assert await downloaded("b")
+        assert not await downloaded("a")  # a is now the most recent
+        assert await downloaded("c")  # pushes out b, the least recent
+        assert not await downloaded("a")
+        assert await downloaded("b")

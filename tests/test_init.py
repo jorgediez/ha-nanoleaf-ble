@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import timedelta
+from unittest.mock import patch
 
 from bleak.exc import BleakError
 
@@ -202,6 +203,40 @@ async def test_firmware_update_in_advertisement(
     assert init_integration.data[CONF_FIRMWARE] == "1.7.0"
     assert init_integration.state is ConfigEntryState.LOADED
     assert init_integration.runtime_data is not coordinator
+
+
+async def test_damaged_firmware_is_replaced_by_the_advertised_one(
+    hass: HomeAssistant, bluetooth: Bluetooth
+) -> None:
+    """A stored firmware that is not a version doesn't stop setup."""
+    # Heard already: its last advertisement corrects it before connecting.
+    entry = MockConfigEntry(domain=DOMAIN, data=entry_data(firmware="1.6.x"))
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.data[CONF_FIRMWARE] == "1.6.49"
+    await hass.config_entries.async_unload(entry.entry_id)
+
+    # Not heard yet: 0.0.0 (legacy) until it advertises, then a reload.
+    hass.config_entries.async_update_entry(
+        entry, data={**entry.data, CONF_FIRMWARE: "1.6.x"}
+    )
+    with patch(
+        "homeassistant.components.bluetooth.async_last_service_info",
+        return_value=None,
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.advertisement.firmware == (0, 0, 0)
+
+    bluetooth.advertise(bluetooth.service_info)
+    await hass.async_block_till_done()
+    assert entry.data[CONF_FIRMWARE] == "1.6.49"
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.advertisement.firmware == (1, 6, 49)
+    await hass.config_entries.async_unload(entry.entry_id)
 
 
 async def test_unrelated_advertisements_are_ignored(
