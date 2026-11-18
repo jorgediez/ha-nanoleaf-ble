@@ -14,8 +14,13 @@ rules:
   config-flow: done
   config-flow-test-coverage: done
   dependency-transparency:
-    status: exempt
-    comment: No external requirements; the protocol library is bundled in lib/.
+    status: done
+    comment: >-
+      The protocol library is bundled in lib/. Its packages come with Home
+      Assistant: bleak and bleak-retry-connector with the bluetooth
+      integration, listed in the manifest as the minimums the oldest supported
+      release ships; cryptography with Home Assistant itself, which hassfest
+      does not allow a custom integration to list.
   docs-actions: done
   docs-conditions:
     status: exempt
@@ -53,10 +58,12 @@ rules:
   diagnostics: done
   discovery: done
   discovery-update-info:
-    status: exempt
+    status: done
     comment: >-
-      The Bluetooth address is the unique id and does not change; a firmware
-      update seen in the advertisement updates the entry.
+      The unique id is the device ID (EUI-64) in the advertisement, which a
+      factory reset keeps. When discovery sees the strip at a new address (a
+      factory reset gives it one), the entry follows it; a firmware update seen
+      in the advertisement updates the entry too.
   docs-data-update: done
   docs-examples: done
   docs-known-limitations: done
@@ -76,8 +83,9 @@ rules:
   reconfiguration-flow:
     status: done
     comment: >-
-      Reconfigure changes the credentials (a new setup code or token); the
-      address is the unique id and comes from discovery.
+      Reconfigure changes the credentials (a new setup code or token), and
+      aborts if a different strip answers at the entry's address. The address
+      is not entered by hand: discovery keeps it current.
   repair-issues: done
   stale-devices:
     status: exempt
