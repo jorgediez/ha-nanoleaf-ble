@@ -342,10 +342,11 @@ def test_optional_strips_are_a_field_not_a_target():
     for name in ("create_scene", "save_community_scene"):
         assert "target" not in services[name], name
         assert "entity_id" in services[name]["fields"], name
+    # The entity filter also limits the devices, areas, floors and labels the
+    # picker offers; hassfest refuses a device filter on a target.
     for name in TARGETED_ACTIONS:
         assert services[name]["target"] == {
-            "entity": {"integration": DOMAIN, "domain": "light"},
-            "device": {"integration": DOMAIN},
+            "entity": {"integration": DOMAIN, "domain": "light"}
         }, name
 
 
