@@ -36,7 +36,7 @@ async def async_setup_entry(
 def community_labels(coordinator: NanoleafCoordinator) -> dict[str, str]:
     """Return a unique label for each search result, mapped to its key."""
     labels: dict[str, str] = {}
-    for result in coordinator.community_results:
+    for result in coordinator.community.results:
         label = f"{result.name} — {result.creator}" if result.creator else result.name
         unique, number = label, 2
         while unique in labels:
@@ -64,13 +64,13 @@ class CommunitySceneSelect(NanoleafEntity, SelectEntity):
     def current_option(self) -> str | None:
         """Return the selected result."""
         for label, key in community_labels(self.coordinator).items():
-            if key == self.coordinator.community_selected:
+            if key == self.coordinator.community.selected:
                 return label
         return None
 
     async def async_select_option(self, option: str) -> None:
         """Point at a result."""
-        self.coordinator.community_selected = community_labels(self.coordinator)[option]
+        self.coordinator.community.selected = community_labels(self.coordinator)[option]
         self.coordinator.async_update_listeners()
 
 

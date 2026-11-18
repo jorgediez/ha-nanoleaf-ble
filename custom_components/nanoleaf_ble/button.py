@@ -29,9 +29,9 @@ def _no_selection(key: str) -> ServiceValidationError:
 
 
 def _selected_community_key(coordinator: NanoleafCoordinator) -> str:
-    if coordinator.community_selected is None:
+    if coordinator.community.selected is None:
         raise _no_selection("no_community_scene_selected")
-    return coordinator.community_selected
+    return coordinator.community.selected
 
 
 def _selected_scene(coordinator: NanoleafCoordinator) -> str:
@@ -50,19 +50,17 @@ async def _restore_defaults(coordinator: NanoleafCoordinator) -> None:
 
 async def _community_preview(coordinator: NanoleafCoordinator) -> None:
     key = _selected_community_key(coordinator)
-    scene, _warnings = await coordinator.async_community_scene(key)
-    result = coordinator.community_result(key)
+    scene, _warnings = await coordinator.community.async_scene(key)
+    result = coordinator.community.result(key)
     await coordinator.async_preview(scene, result.name if result else None)
 
 
 async def _community_save(coordinator: NanoleafCoordinator) -> None:
-    await coordinator.async_save_community_scene(_selected_community_key(coordinator))
+    await coordinator.community.async_save(_selected_community_key(coordinator))
 
 
 async def _community_add(coordinator: NanoleafCoordinator) -> None:
-    item = await coordinator.async_save_community_scene(
-        _selected_community_key(coordinator)
-    )
+    item = await coordinator.community.async_save(_selected_community_key(coordinator))
     await coordinator.async_add_to_strip(item)
 
 

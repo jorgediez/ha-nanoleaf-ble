@@ -299,7 +299,7 @@ async def test_community_unreachable(
     coordinator = init_integration.runtime_data
     mock_community.download.side_effect = NanoleafCloudError("timeout")
     with pytest.raises(HomeAssistantError):
-        await coordinator.async_community_scene("k")
+        await coordinator.community.async_scene("k")
 
 
 async def test_scene_management(

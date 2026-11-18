@@ -356,7 +356,7 @@ async def _search_community_scenes(
     hass: HomeAssistant, call: ServiceCall
 ) -> ServiceResponse:
     coordinator = _any_coordinator(hass)
-    client = await coordinator.async_community_client()
+    client = await coordinator.community.async_client()
     try:
         results = await client.search(
             call.data[ATTR_QUERY],
@@ -364,7 +364,7 @@ async def _search_community_scenes(
             sort=call.data.get(ATTR_SORT),
         )
     except NanoleafCloudError as exc:
-        raise coordinator.community_error(exc) from exc
+        raise coordinator.community.error(exc) from exc
     return {
         "scenes": [
             {
@@ -382,7 +382,7 @@ async def _search_community_scenes(
 
 async def _preview_community_scene(hass: HomeAssistant, call: ServiceCall) -> None:
     for coordinator in await _require_targets(hass, call):
-        scene, _warnings = await coordinator.async_community_scene(call.data[ATTR_KEY])
+        scene, _warnings = await coordinator.community.async_scene(call.data[ATTR_KEY])
         await coordinator.async_preview(scene, None)
 
 
@@ -393,7 +393,7 @@ async def _save_community_scene(hass: HomeAssistant, call: ServiceCall) -> None:
             translation_domain=DOMAIN, translation_key="target_required"
         )
     coordinator = coordinators[0] if coordinators else _any_coordinator(hass)
-    item = await coordinator.async_save_community_scene(
+    item = await coordinator.community.async_save(
         call.data[ATTR_KEY], call.data.get(ATTR_NAME)
     )
     if call.data[ATTR_ADD_TO_STRIP]:

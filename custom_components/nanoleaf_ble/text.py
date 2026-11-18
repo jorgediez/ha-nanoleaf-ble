@@ -39,8 +39,8 @@ class CommunitySearch(NanoleafEntity, TextEntity):
     @property
     def native_value(self) -> str:
         """Return the last query."""
-        return self.coordinator.community_query
+        return self.coordinator.community.query
 
     async def async_set_value(self, value: str) -> None:
         """Search. An empty query lists recent scenes."""
-        await self.coordinator.async_community_search(value)
+        await self.coordinator.community.async_search(value)

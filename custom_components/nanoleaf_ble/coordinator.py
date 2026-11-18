@@ -34,11 +34,10 @@ from homeassistant.exceptions import (
     HomeAssistantError,
     ServiceValidationError,
 )
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.loader import async_get_integration
 
+from .community import CommunityBrowser
 from .const import (
     CONF_CLIENT_ID,
     CONF_FIRMWARE,
@@ -49,7 +48,6 @@ from .const import (
     DEFAULT_POLL_INTERVAL,
     DOMAIN,
     POWER_LOSS_POLL_EVERY,
-    PROJECT_URL,
     RECONNECT_DELAY,
     REFRESH_SOON,
 )
@@ -61,13 +59,10 @@ from .lib import (
     PROTECTED_SCENE_IDS,
     USER_SCENE_IDS,
     AdvertisementInfo,
-    CommunityClient,
-    CommunityScene,
     Credentials,
     DeviceInformation,
     LightState,
     NanoleafAuthError,
-    NanoleafCloudError,
     NanoleafConnectionError,
     NanoleafDevice,
     NanoleafError,
@@ -77,10 +72,8 @@ from .lib import (
     builtin_scene_names,
     default_scenes,
     parse_advertisement,
-    scene_from_animation,
 )
 from .library import (
-    SOURCE_COMMUNITY,
     LibraryScene,
     SceneStore,
     StripSceneRecord,
@@ -97,10 +90,6 @@ TARGET_LIBRARY = "library"
 LOCATION_STRIP = "strip"
 LOCATION_LIBRARY = "library"
 LOCATION_BOTH = "strip + library"
-
-#: Community scenes kept after download, so that previewing one and then
-#: saving it downloads it once. The least recently used go first.
-COMMUNITY_CACHE_SIZE = 32
 
 
 @dataclass(frozen=True, slots=True)
@@ -280,11 +269,13 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         self._checked_scenes: set[int] = set()
         self._preview_name: str | None = None
 
-        # Community search state, shared by the text, select and button entities.
-        self.community_query = ""
-        self.community_results: list[CommunityScene] = []
-        self.community_selected: str | None = None
-        self._community_cache: dict[str, tuple[Scene, list[str]]] = {}
+        #: Community search state, shared by the text, select and button entities.
+        self.community = CommunityBrowser(
+            hass,
+            store,
+            lambda exc: self._error("community_failed", exc),
+            self.async_update_listeners,
+        )
         #: The scene picked in "Scene to manage" (see managed_scene).
         self.scene_selected: str | None = None
 
@@ -799,10 +790,6 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             },
         )
 
-    def community_error(self, exc: Exception) -> HomeAssistantError:
-        """Return the error for a failed community library request."""
-        return self._error("community_failed", exc)
-
     def _strip_full(self) -> HomeAssistantError:
         return HomeAssistantError(
             translation_domain=DOMAIN,
@@ -1046,74 +1033,3 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         if len(written) < len(missing):
             raise self._strip_full()
         return written
-
-    # ------------------------------------------------------------------ community
-
-    async def async_community_client(self) -> CommunityClient:
-        """Return a client for the community scene library.
-
-        The User-Agent names the integration and where to reach its maintainer,
-        so Nanoleaf can tell who is calling an API it doesn't document.
-        """
-        integration = await async_get_integration(self.hass, DOMAIN)
-        return CommunityClient(
-            async_get_clientsession(self.hass),
-            f"ha-nanoleaf-ble/{integration.version} (+{PROJECT_URL})",
-        )
-
-    async def async_community_search(self, query: str) -> None:
-        """Search the community library; the results feed the select entity."""
-        client = await self.async_community_client()
-        try:
-            results = await client.search(query.strip())
-        except NanoleafCloudError as exc:
-            raise self.community_error(exc) from exc
-        self.community_query = query
-        self.community_results = results
-        self.community_selected = results[0].key if results else None
-        self.async_update_listeners()
-
-    async def async_community_scene(self, key: str) -> tuple[Scene, list[str]]:
-        """Download and convert a community scene (see COMMUNITY_CACHE_SIZE)."""
-        if (converted := self._community_cache.pop(key, None)) is None:
-            client = await self.async_community_client()
-            try:
-                animation = await client.download(key)
-                converted = scene_from_animation(animation)
-            except NanoleafCloudError as exc:
-                raise self.community_error(exc) from exc
-            for warning in converted[1]:
-                _LOGGER.info("Community scene %s: %s", key, warning)
-        # Dicts keep insertion order: re-adding the key makes it the newest.
-        self._community_cache[key] = converted
-        while len(self._community_cache) > COMMUNITY_CACHE_SIZE:
-            del self._community_cache[next(iter(self._community_cache))]
-        return converted
-
-    def community_result(self, key: str | None) -> CommunityScene | None:
-        """Return a search result by key."""
-        return next((r for r in self.community_results if r.key == key), None)
-
-    async def async_save_community_scene(
-        self, key: str, name: str | None = None, creator: str | None = None
-    ) -> LibraryScene:
-        """Save a community scene to the library (or return it if already there)."""
-        scene, _warnings = await self.async_community_scene(key)
-        for item in self.store.library:
-            if item.community_key == key:
-                return item
-        result = self.community_result(key)
-        name = name or (result.name if result else f"Community {key[:8]}")
-        if self.store.find(name) is not None:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="scene_exists",
-                translation_placeholders={"scene": name},
-            )
-        return self.store.async_add(
-            name,
-            scene,
-            source=SOURCE_COMMUNITY,
-            community_key=key,
-            creator=creator or (result.creator if result else None),
-        )
