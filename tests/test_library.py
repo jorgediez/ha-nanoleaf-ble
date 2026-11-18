@@ -61,3 +61,40 @@ async def test_unreadable_entries_are_dropped(
     store = SceneStore(hass)
     await store.async_load()
     assert store.library == []
+
+
+async def test_unreadable_strip_records_are_dropped(
+    hass: HomeAssistant, hass_storage: dict[str, Any]
+) -> None:
+    good = {"name": "Mine", "fingerprint": "fp", "library_id": None}
+    hass_storage["nanoleaf_ble"] = {
+        "version": 1,
+        "data": {
+            "library": {"bad": "not a scene"},
+            "devices": {
+                "AA": {
+                    "scenes": {
+                        "1": good,
+                        "two": good,
+                        "3": {"name": "No fingerprint"},
+                        "4": {"name": 4, "fingerprint": "fp"},
+                        "5": {**good, "library_id": 5},
+                        "6": "not a record",
+                    }
+                },
+                "BB": {"scenes": ["not", "a", "dict"]},
+                "CC": "not a device",
+            },
+        },
+    }
+    store = SceneStore(hass)
+    await store.async_load()
+    assert store.library == []
+    assert store.strip_scenes("AA") == {1: StripSceneRecord("Mine", "fp")}
+    assert store.strip_scenes("BB") == {}
+    assert store.strip_scenes("CC") == {}
+
+    hass_storage["nanoleaf_ble"]["data"]["devices"] = ["not", "a", "dict"]
+    store = SceneStore(hass)
+    await store.async_load()
+    assert store.strip_scenes("AA") == {}

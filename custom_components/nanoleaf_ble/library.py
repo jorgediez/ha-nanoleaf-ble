@@ -69,6 +69,39 @@ class StripSceneRecord:
     library_id: str | None = None
 
 
+def _readable_devices(devices: Any) -> dict[str, dict[str, Any]]:
+    """Return the stored strip records, without any that cannot be read.
+
+    The integration only writes good records, but a damaged or hand-edited
+    file would otherwise fail every poll that reads them.
+    """
+    if not isinstance(devices, dict):
+        _LOGGER.warning("Dropping unreadable strip scene records: %r", devices)
+        return {}
+    readable: dict[str, dict[str, Any]] = {}
+    for address, device in devices.items():
+        scenes = device.get("scenes") if isinstance(device, dict) else None
+        if not isinstance(scenes, dict):
+            _LOGGER.warning("Dropping unreadable scene records of %s", address)
+            continue
+        kept: dict[str, Any] = {}
+        for scene_id, record in scenes.items():
+            if (
+                str(scene_id).isdigit()
+                and isinstance(record, dict)
+                and isinstance(record.get("name"), str)
+                and isinstance(record.get("fingerprint"), str)
+                and isinstance(record.get("library_id"), str | None)
+            ):
+                kept[str(scene_id)] = record
+            else:
+                _LOGGER.warning(
+                    "Dropping unreadable record of scene %s on %s", scene_id, address
+                )
+        readable[address] = {**device, "scenes": kept}
+    return readable
+
+
 def normalise_name(name: str) -> str:
     """Return the form names are compared in: case-insensitive, trimmed."""
     return " ".join(name.split()).casefold()
@@ -97,11 +130,11 @@ class SceneStore:
                     community_key=item.get("community_key"),
                     creator=item.get("creator"),
                 )
-            except (KeyError, ValueError, TypeError) as exc:
+            except (AttributeError, KeyError, ValueError, TypeError) as exc:
                 _LOGGER.warning(
                     "Dropping unreadable library scene %s: %s", scene_id, exc
                 )
-        self._devices = data.get("devices") or {}
+        self._devices = _readable_devices(data.get("devices") or {})
 
     def _data_to_save(self) -> dict[str, Any]:
         return {
