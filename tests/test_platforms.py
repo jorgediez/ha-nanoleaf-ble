@@ -270,7 +270,7 @@ async def test_community_browsing(
     )
     await _press(hass, init_integration, "community_add_to_strip")
     assert 1 in bluetooth.state.scenes
-    assert init_integration.runtime_data.scene_name(1) == "Pumpkin Hallow"
+    assert init_integration.runtime_data.scenes.name(1) == "Pumpkin Hallow"
     assert (
         hass.states.get(
             entity_id(hass, init_integration, "sensor", "free_scene_slots")

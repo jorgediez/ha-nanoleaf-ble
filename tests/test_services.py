@@ -180,7 +180,7 @@ async def test_add_remove_rename_delete(
     await _call(hass, "add_scene_to_strip", entity_id=light, scene="mine")
     assert 1 in bluetooth.state.scenes
     await _call(hass, "rename_scene", scene="Mine", new_name="Ours")
-    assert init_integration.runtime_data.scene_name(1) == "Ours"
+    assert init_integration.runtime_data.scenes.name(1) == "Ours"
     await _call(hass, "rename_scene", scene="Ours", new_name="OURS")  # same scene
 
     with pytest.raises(ServiceValidationError) as err:
@@ -216,7 +216,7 @@ async def test_deleting_a_library_scene_keeps_the_strip_copy(
     )
     await _call(hass, "delete_library_scene", scene="Mine")
     assert 1 in bluetooth.state.scenes
-    assert init_integration.runtime_data.scene_name(1) == "Mine"
+    assert init_integration.runtime_data.scenes.name(1) == "Mine"
 
 
 async def test_target_must_be_a_strip(
@@ -274,7 +274,7 @@ async def test_community_actions(
         hass, "save_community_scene", entity_id=light, key="key-a", add_to_strip=True
     )
     assert 1 in bluetooth.state.scenes
-    assert init_integration.runtime_data.scene_name(1) == "My forest"
+    assert init_integration.runtime_data.scenes.name(1) == "My forest"
 
     with pytest.raises(ServiceValidationError) as err:
         await _call(hass, "save_community_scene", key="key-b", add_to_strip=True)
