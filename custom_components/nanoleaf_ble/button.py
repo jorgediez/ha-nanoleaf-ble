@@ -16,9 +16,10 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
-from .coordinator import TARGET_STRIP, NanoleafConfigEntry, NanoleafCoordinator
+from .coordinator import NanoleafConfigEntry, NanoleafCoordinator
 from .entity import NanoleafEntity
 from .lib import default_scenes
+from .scenes import TARGET_STRIP
 
 # Presses go through the coordinator, whose session lock already serialises them.
 PARALLEL_UPDATES = 0
@@ -35,7 +36,7 @@ def _selected_community_key(coordinator: NanoleafCoordinator) -> str:
 
 
 def _selected_scene(coordinator: NanoleafCoordinator) -> str:
-    if (selected := coordinator.managed_scene) is None:
+    if (selected := coordinator.scenes.managed) is None:
         raise _no_selection("no_scene_selected")
     return selected
 
@@ -66,13 +67,13 @@ async def _community_add(coordinator: NanoleafCoordinator) -> None:
 
 async def _scene_add(coordinator: NanoleafCoordinator) -> None:
     name = _selected_scene(coordinator)
-    if coordinator.effects[name].kind == TARGET_STRIP:
+    if coordinator.scenes.effects[name].kind == TARGET_STRIP:
         raise ServiceValidationError(
             translation_domain=DOMAIN,
             translation_key="scene_already_on_strip",
             translation_placeholders={"scene": name},
         )
-    await coordinator.async_add_to_strip(coordinator.require_library_scene(name))
+    await coordinator.async_add_to_strip(coordinator.scenes.require_library_scene(name))
 
 
 async def _scene_remove(coordinator: NanoleafCoordinator) -> None:
@@ -80,7 +81,7 @@ async def _scene_remove(coordinator: NanoleafCoordinator) -> None:
 
 
 async def _scene_delete(coordinator: NanoleafCoordinator) -> None:
-    item = coordinator.require_library_scene(_selected_scene(coordinator))
+    item = coordinator.scenes.require_library_scene(_selected_scene(coordinator))
     coordinator.store.async_delete(item.id)
 
 

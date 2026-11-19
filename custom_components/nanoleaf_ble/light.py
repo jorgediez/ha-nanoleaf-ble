@@ -95,12 +95,12 @@ class NanoleafLight(NanoleafEntity, LightEntity):
         """Return the scenes on the strip, then the library scenes."""
         if not self.coordinator.supports_scenes:
             return None
-        return list(self.coordinator.effects)
+        return list(self.coordinator.scenes.effects)
 
     @property
     def effect(self) -> str | None:
         """Return the playing scene."""
-        return self.coordinator.current_effect
+        return self.coordinator.scenes.current_effect
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on, optionally with a colour, brightness or scene."""

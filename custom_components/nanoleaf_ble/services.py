@@ -312,7 +312,7 @@ async def _preview_scene(hass: HomeAssistant, call: ServiceCall) -> None:
 async def _add_scene_to_strip(hass: HomeAssistant, call: ServiceCall) -> None:
     for coordinator in await _require_targets(hass, call):
         await coordinator.async_add_to_strip(
-            coordinator.require_library_scene(call.data[ATTR_SCENE])
+            coordinator.scenes.require_library_scene(call.data[ATTR_SCENE])
         )
 
 

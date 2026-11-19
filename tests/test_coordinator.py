@@ -273,20 +273,20 @@ async def test_scene_names_follow_their_content(
     bluetooth.state.scenes[7] = defaults[247].encode(7)
 
     await coordinator.async_refresh()
-    assert coordinator.scene_name(2) == "Scene 2"
-    assert coordinator.scene_name(5) == "Cyber copy"
+    assert coordinator.scenes.name(2) == "Scene 2"
+    assert coordinator.scenes.name(5) == "Cyber copy"
     assert store.strip_scenes(address)[5].library_id == item.id
-    assert coordinator.scene_name(7) == "Scene 7"
-    assert "Cyber copy" in coordinator.effects
-    assert list(coordinator.effects).count("Cyber copy") == 1  # not twice
+    assert coordinator.scenes.name(7) == "Scene 7"
+    assert "Cyber copy" in coordinator.scenes.effects
+    assert list(coordinator.scenes.effects).count("Cyber copy") == 1  # not twice
 
     # A recorded scene that is still the same keeps its name.
     store.async_set_strip_scene(
         address, 7, StripSceneRecord("Kept", defaults[247].fingerprint)
     )
-    coordinator._checked_scenes.discard(7)
+    coordinator.scenes._checked.discard(7)
     await coordinator.async_refresh()
-    assert coordinator.scene_name(7) == "Kept"
+    assert coordinator.scenes.name(7) == "Kept"
 
     # Scenes that leave the strip are forgotten.
     del bluetooth.state.scenes[7]
@@ -299,7 +299,7 @@ async def test_duplicate_names_are_made_unique(
 ) -> None:
     store = hass.data[DATA_STORE]
     store.async_add("cloud9", default_scenes("NL62")[244])
-    effects = list(_coordinator(init_integration).effects)
+    effects = list(_coordinator(init_integration).scenes.effects)
     assert "Cloud9" in effects
     assert "cloud9 (2)" in effects
 

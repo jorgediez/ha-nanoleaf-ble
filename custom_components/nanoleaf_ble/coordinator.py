@@ -69,27 +69,13 @@ from .lib import (
     NanoleafStripFullError,
     NanoleafUnsupportedError,
     Scene,
-    builtin_scene_names,
     default_scenes,
     parse_advertisement,
 )
-from .library import (
-    LibraryScene,
-    SceneStore,
-    StripSceneRecord,
-    normalise_name,
-)
+from .library import LibraryScene, SceneStore
+from .scenes import TARGET_STRIP, StripScenes
 
 _LOGGER = logging.getLogger(__name__)
-
-#: Effect targets: a scene stored on the strip, or a library scene to preview.
-TARGET_STRIP = "strip"
-TARGET_LIBRARY = "library"
-
-#: Where a scene lives, as "Scene to manage" marks it.
-LOCATION_STRIP = "strip"
-LOCATION_LIBRARY = "library"
-LOCATION_BOTH = "strip + library"
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,15 +101,6 @@ class NanoleafData:
     def free_slots(self) -> int:
         """Return how many more scenes the strip can store."""
         return max(0, MAX_SCENES - len(self.scene_ids))
-
-
-@dataclass(frozen=True, slots=True)
-class EffectTarget:
-    """What an effect name plays."""
-
-    kind: str
-    #: The strip scene ID, or the library scene ID.
-    ref: int | str
 
 
 type NanoleafConfigEntry = ConfigEntry[NanoleafCoordinator]
@@ -265,9 +242,8 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         self.colour_temperature_mode = False
         self._polls = 0
 
-        # Scene bookkeeping for this connection.
-        self._checked_scenes: set[int] = set()
-        self._preview_name: str | None = None
+        #: Scene names, and the scene each effect name plays.
+        self.scenes = StripScenes(store, self)
 
         #: Community search state, shared by the text, select and button entities.
         self.community = CommunityBrowser(
@@ -276,8 +252,6 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             lambda exc: self._error("community_failed", exc),
             self.async_update_listeners,
         )
-        #: The scene picked in "Scene to manage" (see managed_scene).
-        self.scene_selected: str | None = None
 
     # ------------------------------------------------------------------ properties
 
@@ -478,7 +452,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                     raise
                 break
             self.device = device
-            self._checked_scenes.clear()
+            self.scenes.reset()
             self.async_update_listeners()
             _LOGGER.debug(
                 "%s: connected (%s)", self.config_entry.title, device.protocol
@@ -599,154 +573,14 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                 self.supports_power_loss_recovery = False
                 power_loss = None
         self._polls += 1
-        await self._async_check_scenes(device, scene_ids)
+        await self.scenes.async_check(device, scene_ids)
         if current != PREVIEW_SCENE_ID:
-            self._preview_name = None
+            self.scenes.preview_name = None
         return NanoleafData(
             light=light,
             current_scene=current,
             scene_ids=scene_ids,
             power_loss_recovery=power_loss,
-        )
-
-    async def _async_check_scenes(
-        self, device: NanoleafDevice, scene_ids: tuple[int, ...]
-    ) -> None:
-        """Keep the strip's scene names right as scenes come and go.
-
-        A scene seen for the first time on this connection is read once and
-        matched by content: against what the integration stored under that ID,
-        then against the library. Built-in IDs need no read; the app's tables
-        name them.
-        """
-        builtins = builtin_scene_names(self.model)
-        records = self.store.strip_scenes(self.address)
-        for scene_id in list(records):
-            if scene_id not in scene_ids:
-                self.store.async_forget_strip_scene(self.address, scene_id)
-        self._checked_scenes &= set(scene_ids)
-        for scene_id in scene_ids:
-            if scene_id in self._checked_scenes or scene_id in builtins:
-                continue
-            fingerprint = (await device.get_scene(scene_id)).fingerprint
-            self._checked_scenes.add(scene_id)
-            record = records.get(scene_id)
-            if record is not None and record.fingerprint == fingerprint:
-                continue
-            if (match := self.store.find_by_fingerprint(fingerprint)) is not None:
-                self.store.async_set_strip_scene(
-                    self.address,
-                    scene_id,
-                    StripSceneRecord(match.name, fingerprint, match.id),
-                )
-            elif record is not None:
-                # Something else (the phone app) stored another scene here.
-                self.store.async_forget_strip_scene(self.address, scene_id)
-
-    # ------------------------------------------------------------------ scene names
-
-    def scene_name(self, scene_id: int) -> str:
-        """Return the name of a scene stored on the strip."""
-        if (name := builtin_scene_names(self.model).get(scene_id)) is not None:
-            return name
-        if (record := self.store.strip_scenes(self.address).get(scene_id)) is not None:
-            return record.name
-        return f"Scene {scene_id}"
-
-    @property
-    def effects(self) -> dict[str, EffectTarget]:
-        """Return every playable scene by unique name.
-
-        Scenes on the strip come first, then library scenes that are not on it;
-        those play as previews, taking no slot.
-        """
-        if not self.supports_scenes or self.data is None:
-            return {}
-        effects: dict[str, EffectTarget] = {}
-        taken: set[str] = set()
-
-        def add(name: str, target: EffectTarget) -> None:
-            unique, number = name, 2
-            while normalise_name(unique) in taken:
-                unique, number = f"{name} ({number})", number + 1
-            taken.add(normalise_name(unique))
-            effects[unique] = target
-
-        records = self.store.strip_scenes(self.address)
-        on_strip: set[str] = set()
-        for scene_id in sorted(
-            self.data.scene_ids, key=lambda sid: normalise_name(self.scene_name(sid))
-        ):
-            add(self.scene_name(scene_id), EffectTarget(TARGET_STRIP, scene_id))
-            if (record := records.get(scene_id)) and record.library_id:
-                on_strip.add(record.library_id)
-        for item in self.store.library:
-            if item.id not in on_strip:
-                add(item.name, EffectTarget(TARGET_LIBRARY, item.id))
-        return effects
-
-    @property
-    def scene_locations(self) -> dict[str, str]:
-        """Return every effect name with where the scene lives.
-
-        A strip scene counts as in the library too while its library entry
-        still exists; deleting that entry leaves the strip's copy alone.
-        """
-        records = self.store.strip_scenes(self.address)
-        locations: dict[str, str] = {}
-        for name, target in self.effects.items():
-            if target.kind == TARGET_LIBRARY:
-                locations[name] = LOCATION_LIBRARY
-            elif (
-                (record := records.get(int(target.ref)))
-                and record.library_id
-                and self.store.get(record.library_id) is not None
-            ):
-                locations[name] = LOCATION_BOTH
-            else:
-                locations[name] = LOCATION_STRIP
-        return locations
-
-    @property
-    def current_effect(self) -> str | None:
-        """Return the name of what plays, or None for a static colour or off."""
-        if self.data is None or not self.supports_scenes:
-            return None
-        current = self.data.current_scene
-        if current == NO_SCENE_ID:
-            return None
-        if current == PREVIEW_SCENE_ID:
-            # Only a preview started here has a known name.
-            return self._preview_name
-        for name, target in self.effects.items():
-            if target.kind == TARGET_STRIP and target.ref == current:
-                return name
-        return self.scene_name(current)
-
-    @property
-    def managed_scene(self) -> str | None:
-        """Return the scene the management buttons act on.
-
-        Only the one picked in "Scene to manage", while it still exists: never
-        the scene playing, so no button acts on a scene nobody picked.
-        """
-        return self.scene_selected if self.scene_selected in self.effects else None
-
-    def strip_scene_id(self, name: str) -> int:
-        """Return the strip scene an effect name refers to."""
-        target = self.effects.get(name) or self._find_effect(name)
-        if target is None or target.kind != TARGET_STRIP:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="scene_not_on_strip",
-                translation_placeholders={"scene": name},
-            )
-        return int(target.ref)
-
-    def _find_effect(self, name: str) -> EffectTarget | None:
-        wanted = normalise_name(name)
-        return next(
-            (t for n, t in self.effects.items() if normalise_name(n) == wanted), None
         )
 
     # ------------------------------------------------------------------ commands
@@ -857,13 +691,13 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         elif hs_colour is not None or colour_temperature is not None:
             # A colour replaces whatever scene was playing.
             changes["current_scene"] = NO_SCENE_ID
-            self._preview_name = None
+            self.scenes.preview_name = None
         self._async_set_data(**changes)
 
     async def async_play_effect(self, name: str) -> None:
         """Play a scene by its effect name."""
         self._require_scenes()
-        target = self.effects.get(name) or self._find_effect(name)
+        target = self.scenes.find(name)
         if target is None:
             raise ServiceValidationError(
                 translation_domain=DOMAIN,
@@ -873,7 +707,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         if target.kind == TARGET_STRIP:
             scene_id = int(target.ref)
             await self.async_run(lambda device: device.activate_scene(scene_id))
-            self._preview_name = None
+            self.scenes.preview_name = None
             self._async_after_play(scene_id)
             return
         item = self.store.get(str(target.ref))
@@ -889,7 +723,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
         """Play a scene without storing it."""
         self._require_scenes()
         await self.async_run(lambda device: device.preview_scene(scene))
-        self._preview_name = name
+        self.scenes.preview_name = name
         self._async_after_play(PREVIEW_SCENE_ID)
 
     @callback
@@ -911,42 +745,12 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
 
     # ------------------------------------------------------------------ strip scenes
 
-    def library_scene(self, name: str) -> LibraryScene | None:
-        """Return the library scene an effect or library name refers to."""
-        target = self.effects.get(name) or self._find_effect(name)
-        if target is not None and target.kind == TARGET_LIBRARY:
-            return self.store.get(str(target.ref))
-        if target is not None and target.kind == TARGET_STRIP:
-            record = self.store.strip_scenes(self.address).get(int(target.ref))
-            if record is not None and record.library_id:
-                return self.store.get(record.library_id)
-        return self.store.find(name)
-
-    def require_library_scene(self, name: str) -> LibraryScene:
-        """Return the library scene with this name, or raise."""
-        if (item := self.library_scene(name)) is None:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="scene_not_in_library",
-                translation_placeholders={"scene": name},
-            )
-        return item
-
-    def library_scene_on_strip(self, library_id: str) -> int | None:
-        """Return the ID a library scene is stored under on this strip, if any."""
-        if self.data is None:
-            return None
-        for scene_id, record in self.store.strip_scenes(self.address).items():
-            if record.library_id == library_id and scene_id in self.data.scene_ids:
-                return scene_id
-        return None
-
     async def async_add_to_strip(self, item: LibraryScene) -> int:
         """Store a library scene on the strip; return its ID there."""
         self._require_scenes()
         if self.data is None:  # pragma: no cover - set before entities exist
             raise self._error("command_failed", RuntimeError("no data"))
-        if self.library_scene_on_strip(item.id) is not None:
+        if self.scenes.on_strip(item.id) is not None:
             raise ServiceValidationError(
                 translation_domain=DOMAIN,
                 translation_key="scene_already_on_strip",
@@ -954,12 +758,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
             )
         scene_id = self._free_scene_id()
         await self.async_run(lambda device: device.add_scene(scene_id, item.scene))
-        self.store.async_set_strip_scene(
-            self.address,
-            scene_id,
-            StripSceneRecord(item.name, item.scene.fingerprint, item.id),
-        )
-        self._checked_scenes.add(scene_id)
+        self.scenes.stored(scene_id, item)
         self._async_set_data(scene_ids=(*self.data.scene_ids, scene_id))
         # The strip plays a scene as soon as it is stored.
         self._async_refresh_soon()
@@ -977,7 +776,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
     async def async_remove_from_strip(self, name: str) -> None:
         """Delete a scene from the strip by name. Factory scenes are refused."""
         self._require_scenes()
-        scene_id = self.strip_scene_id(name)
+        scene_id = self.scenes.strip_scene_id(name)
         if scene_id in PROTECTED_SCENE_IDS:
             raise ServiceValidationError(
                 translation_domain=DOMAIN,
@@ -985,8 +784,7 @@ class NanoleafCoordinator(DataUpdateCoordinator[NanoleafData]):
                 translation_placeholders={"scene": name},
             )
         await self.async_run(lambda device: device.delete_scene(scene_id))
-        self.store.async_forget_strip_scene(self.address, scene_id)
-        self._checked_scenes.discard(scene_id)
+        self.scenes.removed(scene_id)
         if self.data is not None:
             self._async_set_data(
                 scene_ids=tuple(s for s in self.data.scene_ids if s != scene_id),

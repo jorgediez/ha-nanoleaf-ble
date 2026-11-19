@@ -82,7 +82,7 @@ def scene_labels(coordinator: NanoleafCoordinator) -> dict[str, str]:
     """
     return {
         f"{name} [{location}]": name
-        for name, location in coordinator.scene_locations.items()
+        for name, location in coordinator.scenes.locations.items()
     }
 
 
@@ -109,7 +109,7 @@ class SceneSelect(NanoleafEntity, SelectEntity):
     @property
     def current_option(self) -> str | None:
         """Return the picked scene; unknown until one is picked."""
-        managed = self.coordinator.managed_scene
+        managed = self.coordinator.scenes.managed
         for label, name in scene_labels(self.coordinator).items():
             if name == managed:
                 return label
@@ -117,5 +117,5 @@ class SceneSelect(NanoleafEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Point at a scene."""
-        self.coordinator.scene_selected = scene_labels(self.coordinator)[option]
+        self.coordinator.scenes.selected = scene_labels(self.coordinator)[option]
         self.coordinator.async_update_listeners()
