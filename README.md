@@ -260,21 +260,31 @@ data:
   effect: fade
   colours: [[255, 0, 0], [0, 0, 255]]
   speed: 10
+```
 
-# Search the community library (returns the results)
-action: nanoleaf_ble.search_community_scenes
-data:
-  query: aurora
-  sort: top
-response_variable: found
+A community search returns its results to the script that runs it, so saving
+one of them takes both steps in the same script or automation. In this one,
+the search stores its results in `found`, and the next step saves the first
+one. Run on its own, from Developer Tools for example, the save step fails
+with "'found' is undefined". There, run the search, copy a `key` from its
+response, and paste it into the save action instead.
 
-# Save the first result, keeping its name, and store it on the strip
-action: nanoleaf_ble.save_community_scene
-target:
-  entity_id: light.secretlab_magrgb_be3a
-data:
-  key: "{{ found.scenes[0].key }}"
-  add_to_strip: true
+```yaml
+sequence:
+  # Search the community library
+  - action: nanoleaf_ble.search_community_scenes
+    data:
+      query: aurora
+      sort: top
+    response_variable: found
+
+  # Save the first result, keeping its name, and store it on the strip
+  - action: nanoleaf_ble.save_community_scene
+    target:
+      entity_id: light.secretlab_magrgb_be3a
+    data:
+      key: "{{ found.scenes[0].key }}"
+      add_to_strip: true
 ```
 
 | Action | Strips | What it does |
